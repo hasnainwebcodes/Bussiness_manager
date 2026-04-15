@@ -1,0 +1,33 @@
+{% extends "home.html" %}{% block content %}
+
+<div class="container py-5">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Projects in {{ company.name }}</h2>
+    <a href="{% url 'create_projects' %}" class="btn btn-primary">Create project</a>
+  </div>
+
+  {% if messages %}
+    {% for m in messages %}
+      <div class="alert alert-{{ m.tags }}">{{ m }}</div>
+    {% endfor %}
+  {% endif %}
+
+  {% if projects %}
+  <div class="row g-3">
+    {% for p in projects %}
+    <div class="col-md-6 col-lg-4">
+      <div class="card bg-dark">
+        <div class="card-body">
+          <h5 class="card-title">{{ p.name }}</h5>
+          <small class="text-muted">Created {{ p.created_at|date:"M d, Y" }}</small>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p>No projects yet.</p>
+  {% endif %}
+</div>
+
+{% endblock %}

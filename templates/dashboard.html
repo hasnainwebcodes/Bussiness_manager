@@ -1,0 +1,46 @@
+{% extends "home.html" %}{% block content %}
+
+<div class="container py-5">
+  <div class="row g-4">
+    <div class="col-12">
+      {% if company %}
+      <h2>Workspace: {{ company.name }} (Plan: {{ company.plan|upper }})</h2>
+      <p>Owner: {{ company.owner.email }}</p>
+      {% else %}
+      <h2>No company yet</h2>
+      <p>Please create a company to get started.</p>
+      <a href="{% url 'create_company' %}" class="btn btn-primary">Create Company</a>
+      {% endif %}
+    </div>
+
+    {% if company %}
+    <div class="col-md-6">
+      <h4>Projects</h4>
+      {% for p in projects %}
+      <div class="card bg-dark mb-2">
+        <div class="card-body">{{ p.name }}</div>
+      </div>
+      {% empty %}
+      <p>No projects yet.</p>
+      {% endfor %}
+      <a href="{% url 'create_projects' %}" class="btn btn-outline-light">Create project</a>
+    </div>
+
+    <div class="col-md-6">
+      <h4>Team members</h4>
+      {% for m in team %}
+      <div class="card bg-dark mb-2">
+        <div class="card-body">
+          {{ m.user.email }} – {{ m.get_role_display }}
+        </div>
+      </div>
+      {% empty %}
+      <p>No members yet.</p>
+      {% endfor %}
+      <a href="{% url 'view_team' %}" class="btn btn-outline-light">Manage team</a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}

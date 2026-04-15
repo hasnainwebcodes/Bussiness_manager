@@ -1,0 +1,65 @@
+{% extends "home.html" %}
+{% block content %}
+
+<div class="container py-5">
+  <div class="row g-4">
+    <div class="col-12">
+      <h2>{{ company.name }} – Team</h2>
+    </div>
+
+    <div class="col-md-6">
+      <h4>Members</h4>
+      {% for m in members %}
+      <div class="card bg-dark mb-2">
+        <div class="card-body">
+          <strong>{{ m.user.email }}</strong> – {{ m.get_role_display }}
+          {% if m.role == 10 %}
+          <a href="{% url 'change_user_role' user_id=m.user.id %}" class="btn btn-sm btn-primary float-end">
+            Promote to Admin
+          </a>
+          {% elif m.role == 20 %}
+          <a href="{% url 'change_user_role' user_id=m.user.id %}" class="btn btn-sm btn-warning float-end">
+            Demote to Member
+          </a>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <div class="col-md-6">
+      <h4>Pending invites</h4>
+      {% for i in invites %}
+      <div class="card bg-dark mb-2">
+        <div class="card-body">
+          {{ i.email }} – {{ i.get_role_display }} – <small class="text-muted">Pending</small>
+        </div>
+      </div>
+      {% empty %}
+      <p>No pending invites.</p>
+      {% endfor %}
+
+      <div class="mt-4">
+        <h4>Invite new member</h4>
+        <form method="post" action="{% url 'invite' %}">
+          {% csrf_token %}
+          <div class="mb-3">
+            <label class="form-label">Email</label>
+            <input type="email" class="form-control" name="email" required/>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Role</label>
+            <select class="form-select" name="role" required>
+              <option value="10">Member</option>
+              <option value="20">Admin</option>
+            </choice>
+          </select>
+          </div>
+          <button type="submit" class="btn btn-primary">Send invite</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,65 @@
+{% extends "home.html" %}{% block content %}
+
+<div class="container py-5">
+  <div class="row g-4">
+    <div class="col-12">
+      <h2>Billing – {{ company.name }}</h2>
+      <p>Current plan: <strong>{{ company.plan|upper }}</strong></p>
+    </div>
+
+    {% if subscription %}
+    <div class="col-md-6">
+      <div class="card bg-dark text-white">
+        <div class="card-body">
+          <h5 class="card-title">Subscription</h5>
+          <p>
+            Stripe Customer: {{ subscription.stripe_customer_id|truncatechars:20 }}<br>
+            Stripe Subscription: {{ subscription.stripe_subscription_id|truncatechars:20 }}<br>
+            Price: {{ subscription.stripe_price_id }}<br>
+            Active: {{ subscription.is_active|yesno:"Yes,No" }}<br>
+            Ends: {{ subscription.current_period_end|date:"M d, Y H:i" }}
+          </p>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="col-md-6">
+
+      {% if messages %}
+        {% for m in messages %}
+          <div class="alert alert-{{ m.tags }}">{{ m }}</div>
+        {% endfor %}
+      {% endif %}
+
+      {% if company.plan == "free" %}
+      <div class="card bg-dark text-white">
+        <div class="card-body">
+          <h5 class="card-title text-primary">Free Plan</h5>
+          <p>Upgrade to Pro to get unlimited projects and advanced features.</p>
+          <a href="{% url 'upgrade_pro' %}" class="btn btn-primary w-100">Upgrade to Pro</a>
+        </div>
+      </div>
+      {% elif company.plan == "pro" %}
+      <div class="card bg-dark text-white">
+        <div class="card-body">
+          <h5 class="card-title text-success">Pro Plan — Active</h5>
+          <p>You have unlimited projects and advanced features.</p>
+          <a href="{% url 'billing_cancel' %}" class="btn btn-outline-warning w-100 mt-2">Cancel subscription</a>
+          <a href="{% url 'billing' %}" class="btn btn-outline-light w-100 mt-2" disabled>Paid $29/month</a>
+        </div>
+      </div>
+      {% else %}
+      <div class="card bg-dark text-white">
+        <div class="card-body">
+          <h5 class="card-title">Business Plan</h5>
+          <p>Full‑featured plan for large organizations.</p>
+          <a href="#" class="btn btn-outline-light w-100">Contact sales</a>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+{% endblock %}

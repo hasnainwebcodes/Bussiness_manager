@@ -1,0 +1,63 @@
+{% extends "home.html" %}{% block content %}
+
+<div class="container py-5">
+  <div class="row g-4">
+    <div class="col-12">
+      <h2>Admin: {{ company.name }}</h2>
+      <p>Owner: {{ company.owner.email }} | Plan: {{ company.plan|upper }} | Banned: {{ company.is_banned|yesno:"Yes,No" }}</p>
+    </div>
+
+    <div class="col-md-6">
+      <h4>Members</h4>
+      {% for m in members %}
+      <div class="card bg-dark mb-2">
+        <div class="card-body">
+          {{ m.user.email }} – {{ m.get_role_display }}
+        </div>
+      </div>
+      {% empty %}
+      <p>No members.</p>
+      {% endfor %}
+    </div>
+
+    <div class="col-md-6">
+      <h4>Projects</h4>
+      {% for p in projects %}
+      <div class="card bg-dark mb-2">
+        <div class="card-body">
+          {{ p.name }} – {{ p.created_at|date:"M d, Y" }}
+        </div>
+      </div>
+      {% empty %}
+      <p>No projects.</p>
+      {% endfor %}
+    </div>
+
+    {% if subscription %}
+    <div class="col-12">
+      <div class="card bg-dark">
+        <div class="card-body">
+          <h5>Subscription (Stripe)</h5>
+          <p>
+            Customer ID: {{ subscription.stripe_customer_id }}<br>
+            Subscription ID: {{ subscription.stripe_subscription_id }}<br>
+            Price ID: {{ subscription.stripe_price_id }}<br>
+            Active: {{ subscription.is_active|yesno:"Yes,No" }}<br>
+            Period end: {{ subscription.current_period_end|date:"M d, Y H:i" }}
+          </p>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="col-12">
+      <a href="{% url 'admin_company' %}" class="btn btn-outline-secondary me-2">Back to companies</a>
+      {% if not company.is_banned %}
+      <a href="{% url 'company_upgrade' pk=company.pk %}" class="btn btn-outline-success">Upgrade to Pro</a>
+      <a href="{% url 'company_ban' pk=company.pk %}" class="btn btn-outline-danger">Ban company</a>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+{% endblock %}
