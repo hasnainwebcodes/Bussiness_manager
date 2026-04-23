@@ -5,7 +5,7 @@ from . import views
 urlpatterns = [
     path('', views.index, name="home"),
     path('register/', views.register, name="register"),
-    path('verify/<str:token>/', views.verify_email, name="verify_email"),
+    path('verify/<int:user_id>/<str:token>/', views.verify_email, name="verify_email"),
     path('user_login/', views.user_login, name="user_login"),
     path('user_logout/', views.user_logout, name="user_logout"),
     path('companies/new/', views.create_company, name="create_company"),
@@ -22,7 +22,7 @@ urlpatterns = [
     path('webhook/stripe/', views.stripe_webhook, name="webhook_stripe"),
     path('billing/success/', views.billing_success, name="billing_success"),
     path('billing/cancel/', views.billing_cancel, name="billing_cancel"),
-    path('company/admin/', views.admin, name="admin"),
+    path('company/admin/', views.admin_dashboard, name="admin"),
     path('company/admin/<str:pk>/', views.company_single, name="company_single"),
     path('company/admin/<str:pk>/upgrade/', views.company_upgrade, name="company_upgrade"),
     path('company/admin/<str:pk>/ban/', views.company_ban, name="company_ban"),

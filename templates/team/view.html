@@ -1,64 +1,119 @@
 {% extends "home.html" %}
+
+{% block title %}Team - {{ company.name }}{% endblock %}
+
 {% block content %}
 
 <div class="container py-5">
+
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="display-6 fw-bold">{{ company.name }} – Team Management</h1>
+    <a href="{% url 'dashboard' %}" class="btn btn-outline-light">← Back to Dashboard</a>
+  </div>
+
+  {% if messages %}
+    {% for m in messages %}
+      <div class="alert alert-{{ m.tags }} alert-dismissible fade show">
+        {{ m }}
+      </div>
+    {% endfor %}
+  {% endif %}
+
   <div class="row g-4">
-    <div class="col-12">
-      <h2>{{ company.name }} – Team</h2>
-    </div>
 
-    <div class="col-md-6">
-      <h4>Members</h4>
-      {% for m in members %}
-      <div class="card bg-dark mb-2">
-        <div class="card-body">
-          <strong>{{ m.user.email }}</strong> – {{ m.get_role_display }}
-          {% if m.role == 10 %}
-          <a href="{% url 'change_user_role' user_id=m.user.id %}" class="btn btn-sm btn-primary float-end">
-            Promote to Admin
-          </a>
-          {% elif m.role == 20 %}
-          <a href="{% url 'change_user_role' user_id=m.user.id %}" class="btn btn-sm btn-warning float-end">
-            Demote to Member
-          </a>
-          {% endif %}
+    <!-- Current Members -->
+    <div class="col-lg-7">
+      <div class="card bg-dark border-secondary shadow-sm">
+        <div class="card-header bg-dark border-secondary">
+          <h5 class="mb-0">Team Members ({{ members|length }})</h5>
+        </div>
+        <div class="card-body p-0">
+          <div class="list-group list-group-flush">
+            {% for m in members %}
+            <div class="list-group-item bg-dark border-secondary d-flex justify-content-between align-items-center py-3">
+              <div>
+                <strong>{{ m.user.email }}</strong>
+                <br>
+                <span class="badge 
+                  {% if m.role == 30 %}bg-danger
+                  {% elif m.role == 20 %}bg-warning text-dark
+                  {% else %}bg-secondary{% endif %}">
+                  {{ m.get_role_display }}
+                </span>
+              </div>
+
+              {% if is_owner and m.role != 30 %}   <!-- Only Owner can change roles -->
+                <a href="{% url 'change_user_role' m.user.id %}" 
+                   class="btn btn-sm 
+                     {% if m.role == 10 %}btn-primary{% else %}btn-warning{% endif %}">
+                  {% if m.role == 10 %}Promote to Admin{% else %}Demote to Member{% endif %}
+                </a>
+              {% elif m.role == 30 %}
+                <span class="badge bg-danger">Owner</span>
+              {% endif %}
+            </div>
+            {% endfor %}
+          </div>
         </div>
       </div>
-      {% endfor %}
     </div>
 
-    <div class="col-md-6">
-      <h4>Pending invites</h4>
-      {% for i in invites %}
-      <div class="card bg-dark mb-2">
+    <!-- Invite Section -->
+    <div class="col-lg-5">
+      <div class="card bg-dark border-secondary shadow-sm">
+        <div class="card-header bg-dark border-secondary">
+          <h5 class="mb-0">Pending Invites</h5>
+        </div>
         <div class="card-body">
-          {{ i.email }} – {{ i.get_role_display }} – <small class="text-muted">Pending</small>
+          {% for i in invites %}
+            <div class="card bg-secondary mb-3">
+              <div class="card-body">
+                <strong>{{ i.email }}</strong><br>
+                <small class="text-secondary">
+                  Role: {{ i.get_role_display }} • Pending
+                </small>
+              </div>
+            </div>
+          {% empty %}
+            <p class="text-secondary">No pending invites.</p>
+          {% endfor %}
         </div>
       </div>
-      {% empty %}
-      <p>No pending invites.</p>
-      {% endfor %}
 
-      <div class="mt-4">
-        <h4>Invite new member</h4>
-        <form method="post" action="{% url 'invite' %}">
-          {% csrf_token %}
-          <div class="mb-3">
-            <label class="form-label">Email</label>
-            <input type="email" class="form-control" name="email" required/>
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Role</label>
-            <select class="form-select" name="role" required>
-              <option value="10">Member</option>
-              <option value="20">Admin</option>
-            </choice>
-          </select>
-          </div>
-          <button type="submit" class="btn btn-primary">Send invite</button>
-        </form>
+      <!-- Invite Form -->
+      <div class="card bg-dark border-secondary shadow-sm mt-4">
+        <div class="card-header bg-dark border-secondary">
+          <h5 class="mb-0">Invite New Member</h5>
+        </div>
+        <div class="card-body">
+          <form method="post" action="{% url 'invite' %}">
+            {% csrf_token %}
+            
+            <div class="mb-3">
+              <label class="form-label">Email Address</label>
+              <input type="email" 
+                     name="email" 
+                     class="form-control bg-dark text-white border-secondary" 
+                     placeholder="colleague@company.com" 
+                     required>
+            </div>
+
+            <div class="mb-4">
+              <label class="form-label">Role</label>
+              <select name="role" class="form-select bg-dark text-white border-secondary" required>
+                <option value="10">Member</option>
+                <option value="20">Admin</option>
+              </select>
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100 py-3">
+              Send Invitation
+            </button>
+          </form>
+        </div>
       </div>
     </div>
+
   </div>
 </div>
 

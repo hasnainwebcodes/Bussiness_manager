@@ -1,0 +1,26 @@
+{% extends "home.html" %}
+
+{% block title %}Access Denied{% endblock %}
+
+{% block content %}
+
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-md-6 text-center">
+      <div class="card bg-dark border-danger shadow-sm">
+        <div class="card-body p-5">
+          <h1 class="text-danger display-1 fw-bold mb-3">403</h1>
+          <h3 class="mb-4">Access Forbidden</h3>
+          <p class="lead text-secondary mb-4">
+            You don't have permission to access this page.
+          </p>
+          <a href="{% url 'dashboard' %}" class="btn btn-outline-light btn-lg">
+            Return to Dashboard
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

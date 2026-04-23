@@ -1,32 +1,63 @@
-{% extends "home.html" %}{% block content %}
+{% extends "home.html" %}
+
+{% block title %}Register - BusinessManager{% endblock %}
+
+{% block content %}
 
 <div class="container py-5">
   <div class="row justify-content-center">
-    <div class="col-md-6">
-      <div class="card bg-dark text-white shadow-sm">
-        <div class="card-body">
-          <h3 class="card-title mb-4">Create account</h3>
+    <div class="col-md-6 col-lg-5">
+      <div class="card shadow-sm bg-dark border-secondary">
+        <div class="card-body p-4 p-md-5">
+          
+          <h2 class="text-center mb-4 fw-bold">Create Your Account</h2>
+          
           {% if messages %}
             {% for m in messages %}
-              <div class="alert alert-danger">{{ m }}</div>
+              <div class="alert alert-{{ m.tags }} alert-dismissible fade show">
+                {{ m }}
+              </div>
             {% endfor %}
           {% endif %}
+
           <form method="post">
             {% csrf_token %}
+            
             <div class="mb-3">
-              <label class="form-label">Email</label>
-              <input type="email" class="form-control" name="email" required/>
+              <label class="form-label">Email Address</label>
+              <input type="email" 
+                     name="email" 
+                     class="form-control bg-dark text-white border-secondary" 
+                     placeholder="you@company.com" 
+                     required>
             </div>
+
             <div class="mb-3">
               <label class="form-label">Password</label>
-              <input type="password" class="form-control" name="password1" required/>
+              <input type="password" 
+                     name="password1" 
+                     class="form-control bg-dark text-white border-secondary" 
+                     required>
             </div>
-            <div class="mb-3">
-              <label class="form-label">Confirm password</label>
-              <input type="password" class="form-control" name="password2" required/>
+
+            <div class="mb-4">
+              <label class="form-label">Confirm Password</label>
+              <input type="password" 
+                     name="password2" 
+                     class="form-control bg-dark text-white border-secondary" 
+                     required>
             </div>
-            <button type="submit" class="btn btn-lg w-100 btn-primary">Register</button>
+
+            <button type="submit" class="btn btn-primary btn-lg w-100 py-3">
+              Create Account
+            </button>
           </form>
+
+          <div class="text-center mt-4 text-secondary">
+            Already have an account? 
+            <a href="{% url 'user_login' %}" class="text-light fw-medium">Login here</a>
+          </div>
+
         </div>
       </div>
     </div>
