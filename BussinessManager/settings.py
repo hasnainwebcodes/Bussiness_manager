@@ -139,3 +139,6 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'vighiorazahasnain@gmail.com'        
 EMAIL_HOST_PASSWORD = 'gzec byjj rkay vbua'  
 DEFAULT_FROM_EMAIL = 'BusinessManager <vighiorazahasnain@gmail.com>'
+STRIPE_PUBLISHABLE_KEY = "pk_test_51SBVr9DRIV9EVyvDsJq69RKUGnOqwYd5bydXmwCkwwl1EaEEUMXX4TgfYiLX4OYZqmHsjPEpssI2yKYhQL75H7hP00QwBZuRF3" 
+STRIPE_SECRET_KEY = "sk_test_51SBVr9DRIV9EVyvD2849lleX4nCEVrk8TkgnJ3ZXoxwIHFbrdYKHjR5D2iOqT19Z5Bogn9FoZ67f56jntlVGXnxn00JrMDXKEZ"      
+STRIPE_WEBHOOK_SECRET = "whsec_24a3c2b4e5512c464c2a5306ab0c76e1ab73dbc0ffca81e3cdfe80e1718263ae"

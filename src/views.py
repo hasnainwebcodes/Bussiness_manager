@@ -4,13 +4,14 @@ from django.contrib.auth import login, authenticate, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from .tokens import email_verification_token
+from .decorators import require_role
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 from django.utils import timezone
 from django.core.mail import send_mail
 from django.urls import reverse
 from django.conf import settings
-
+import stripe
 from uuid import uuid4
 import logging
 
@@ -25,7 +26,7 @@ from .models import (
 )
 
 logger = logging.getLogger(__name__)
-
+stripe.api_key = settings.STRIPE_SECRET_KEY
 
 # ====================== AUTH & EMAIL VERIFICATION ======================
 
@@ -195,6 +196,7 @@ def dashboard(request):
     projects = company.projects.all()[:10]
 
     context = {
+         "id" : str(company.id),
         "company": company,
         "projects": projects,
         "team": company.members.select_related("user")[:8],
@@ -366,66 +368,150 @@ def projects(request):
     return render(request, "projects/list.html", context)
 
 
-@login_required
-def create_projects(request):
-    member = get_object_or_404(TeamMember, user=request.user)
-    company = member.company
 
-    if company.plan == "free" and company.projects.count() >= 3:
-        messages.warning(request, "You've reached the Free plan limit of 3 projects. Upgrade to Pro for unlimited projects.")
-        return redirect("billing")
+@login_required
+@require_role([MemberRole.ADMIN, MemberRole.OWNER]) # Members can't create projects
+def create_projects(request):
+    member = TeamMember.objects.get(user=request.user)
+    company = member.company
+    
+    # THE PAYWALL CHECK
+    project_count = company.projects.count()
+    if company.plan == 'free' and project_count >= 3:
+        messages.error(request, "Free plans are limited to 3 projects. Please upgrade to Pro!")
+        return redirect('billing')
 
     if request.method == "POST":
-        name = request.POST.get("name")
-        if not name:
-            messages.error(request, "Project name is required.")
-            return redirect("create_projects")
-
-        Project.objects.create(name=name, company=company)
+        name = request.POST.get('name')
+        description = request.POST.get('description')
+        Project.objects.create(name=name, description=description, company=company)
         messages.success(request, "Project created successfully!")
-        return redirect("projects")
-
+        return redirect('dashboard')
+    
     return render(request, "projects/create.html")
+    # ====================== BILLING ======================
 
-
-# ====================== BILLING ======================
 
 @login_required
 def billing(request):
     member = get_object_or_404(TeamMember, user=request.user, role=MemberRole.OWNER)
+    company = member.company
 
-    subscription = None
-    try:
-        subscription = CompanySubscription.objects.get(company=member.company)
-    except CompanySubscription.DoesNotExist:
-        pass
+    # --- HANDLE BUSINESS PLAN CONTACT FORM ---
+    if request.method == "POST" and 'contact_sales' in request.POST:
+        size = request.POST.get('size')
+        message_text = request.POST.get('message')
+        
+        # Send email to yourself (Admin)
+        send_mail(
+            subject=f"Enterprise Inquiry: {company.name}",
+            message=f"User: {request.user.email}\nCompany: {company.name}\nSize: {size}\nMessage: {message_text}",
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[settings.DEFAULT_FROM_EMAIL],
+        )
+        messages.success(request, "Inquiry sent! Our sales team will contact you soon.")
+        return redirect('billing')
 
+    subscription = CompanySubscription.objects.filter(company=company).first()
+    
     context = {
-        "company": member.company,
+        "company": company,
         "subscription": subscription,
-        "current_plan": member.company.plan,
     }
     return render(request, "billing/index.html", context)
-
-
 @login_required
 def upgrade_pro(request):
     return redirect("billing_success")
 
 
 @csrf_exempt
+@login_required
 @require_http_methods(["POST"])
 def checkout_session(request):
-    return JsonResponse({
-        "checkout_url": "/billing/success/",
-        "message": "Stripe Checkout (sandbox mode)"
-    })
+    """
+    Scene 4: The 'Mechanical Shell' of the Payment.
+    This creates a secure Stripe URL and redirects the user to the sandbox.
+    """
+    # 1. Permission Check: Only the 'Owner' can manage billing
+    member = get_object_or_404(
+        TeamMember, 
+        user=request.user, 
+        role=MemberRole.OWNER
+    )
+    
+    # 2. Your Price ID from the Stripe Dashboard
+    PRO_PRICE_ID = "price_1TPeKFDRIV9EVyvDotMBZYqR"  # <--- Paste your price_... ID here
 
+    try:
+        # 3. Create the Stripe Checkout Session
+        session = stripe.checkout.Session.create(
+            customer_email=request.user.email,
+            payment_method_types=['card'],
+            line_items=[
+                {
+                    'price': PRO_PRICE_ID,
+                    'quantity': 1,
+                },
+            ],
+            mode='subscription',  # Use 'subscription' for recurring monthly payments
+            success_url=request.build_absolute_uri(reverse('billing_success')) + "?session_id={CHECKOUT_SESSION_ID}",
+            cancel_url=request.build_absolute_uri(reverse('billing')),
+            # CRITICAL: This metadata is what the Webhook uses to upgrade the right company
+            metadata={
+                'company_id': member.company.id,
+                'user_id': request.user.id
+            }
+        )
+        
+        # 4. Return the URL so the frontend JavaScript can redirect the user
+        return JsonResponse({'checkout_url': session.url})
 
+    except Exception as e:
+        # Log the error for debugging
+        print(f"Stripe Error: {e}")
+        return JsonResponse({'message': "Could not create checkout session. Please try again."}, status=400)
 @csrf_exempt
-@require_http_methods(["POST"])
 def stripe_webhook(request):
-    print("Stripe webhook received (sandbox mode)")
+    payload = request.body
+    sig_header = request.META.get('HTTP_STRIPE_SIGNATURE')
+    endpoint_secret = settings.STRIPE_WEBHOOK_SECRET 
+
+    try:
+        event = stripe.Webhook.construct_event(payload, sig_header, endpoint_secret)
+    except (ValueError, stripe.error.SignatureVerificationError):
+        return HttpResponse(status=400)
+
+    # 1. Payment Successful
+    if event['type'] == 'checkout.session.completed':
+        session = event['data']['object']
+        company_id = session['metadata']['company_id']
+        company = Company.objects.get(id=company_id)
+        
+        company.plan = Company.PRO
+        company.save()
+
+        CompanySubscription.objects.update_or_create(
+            company=company,
+            defaults={
+                'stripe_customer_id': session['customer'],
+                'stripe_subscription_id': session['subscription'],
+                'stripe_price_id': "pro_monthly",
+                'current_period_end': timezone.now() + timezone.timedelta(days=30),
+                'is_active': True,
+            }
+        )
+
+    # 2. Subscription Ended or Payment Failed (Scene 4)
+    elif event['type'] in ['customer.subscription.deleted', 'invoice.payment_failed']:
+        stripe_sub = event['data']['object']
+        sub_record = CompanySubscription.objects.filter(stripe_subscription_id=stripe_sub['id']).first()
+        if sub_record:
+            company = sub_record.company
+            company.plan = Company.FREE
+            company.save()
+            sub_record.is_active = False
+            sub_record.save()
+
     return HttpResponse(status=200)
 
 
@@ -451,10 +537,22 @@ def billing_success(request):
 
 
 @login_required
+@require_http_methods(["POST"])
 def billing_cancel(request):
-    messages.info(request, "Subscription cancellation feature coming soon.")
-    return redirect("billing")
+    member = get_object_or_404(TeamMember, user=request.user, role=MemberRole.OWNER)
+    subscription = get_object_or_404(CompanySubscription, company=member.company)
 
+    try:
+        # Don't delete yet, just tell Stripe not to renew
+        stripe.Subscription.modify(
+            subscription.stripe_subscription_id,
+            cancel_at_period_end=True
+        )
+        messages.info(request, "Your subscription is set to cancel at the end of the billing period.")
+    except Exception as e:
+        messages.error(request, f"Stripe Error: {str(e)}")
+        
+    return redirect('billing')
 
 # ====================== ADMIN ======================
 
@@ -525,3 +623,17 @@ def company_ban(request, pk):
 
     messages.success(request, f"Company '{company.name}' has been banned.")
     return redirect("company_single", pk=company.pk)
+
+@login_required
+def team_settings(request):
+    member = get_object_or_404(TeamMember, user=request.user)
+    company = member.company
+    members = company.members.all().select_related('user')
+    invites = company.invites.filter(status='invited')
+
+    return render(request, "team/settings.html", {
+        "company": company,
+        "members": members,
+        "invites": invites,
+        "is_owner": member.role == MemberRole.OWNER
+    })

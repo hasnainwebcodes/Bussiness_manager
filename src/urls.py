@@ -26,4 +26,5 @@ urlpatterns = [
     path('company/admin/<str:pk>/', views.company_single, name="company_single"),
     path('company/admin/<str:pk>/upgrade/', views.company_upgrade, name="company_upgrade"),
     path('company/admin/<str:pk>/ban/', views.company_ban, name="company_ban"),
+    path('settings/team/', views.team_settings, name='team_settings'),
 ]

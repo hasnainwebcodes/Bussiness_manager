@@ -6,34 +6,59 @@
 
 <div class="container py-5">
   <div class="row justify-content-center">
-    <div class="col-md-6 col-lg-5">
+    <div class="col-md-8 col-lg-6">
       <div class="card bg-dark border-secondary shadow-sm">
-        <div class="card-body p-5">
+        <div class="card-body p-4 p-md-5">
 
-          <h2 class="text-center mb-4 fw-bold">Create New Project</h2>
+          <h2 class="text-center mb-4 fw-bold text-white">Create New Project</h2>
 
           {% if messages %}
             {% for m in messages %}
-              <div class="alert alert-{{ m.tags }} alert-dismissible fade show">
+              <div class="alert alert-{{ m.tags }} alert-dismissible fade show bg-dark text-white border-secondary">
                 {{ m }}
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert"></button>
               </div>
             {% endfor %}
+          {% endif %}
+
+          {% if company.plan == 'free' %}
+          <div class="alert alert-warning border-0 bg-warning bg-opacity-10 text-warning mb-4">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            <strong>Free Plan Limit:</strong> You can have up to 3 active projects.
+          </div>
           {% endif %}
 
           <form method="post">
             {% csrf_token %}
             
             <div class="mb-4">
-              <label class="form-label">Project Name</label>
+              <label class="form-label text-secondary small text-uppercase fw-bold">Project Name</label>
               <input type="text" 
                      name="name" 
-                     class="form-control form-control-lg bg-dark text-white border-secondary"
+                     class="form-control form-control-lg bg-dark text-white border-secondary focus-ring"
                      placeholder="e.g. Website Redesign" 
                      required autofocus>
             </div>
 
-            <button type="submit" class="btn btn-success btn-lg w-100 py-3 mb-3">
-              Create Project
+            <div class="mb-4">
+              <label class="form-label text-secondary small text-uppercase fw-bold">Description</label>
+              <textarea name="description" 
+                        rows="3" 
+                        class="form-control bg-dark text-white border-secondary"
+                        placeholder="What is this project about?"></textarea>
+            </div>
+
+            <div class="mb-4">
+              <label class="form-label text-secondary small text-uppercase fw-bold">Initial Status</label>
+              <select name="status" class="form-select bg-dark text-white border-secondary">
+                <option value="planning" selected>Planning</option>
+                <option value="active">Active</option>
+                <option value="on_hold">On Hold</option>
+              </select>
+            </div>
+
+            <button type="submit" class="btn btn-success btn-lg w-100 py-3 mb-3 fw-bold">
+              <i class="bi bi-plus-circle me-2"></i>Create Project
             </button>
           </form>
 
@@ -46,5 +71,15 @@
     </div>
   </div>
 </div>
+
+<style>
+  /* Subtle glow when focusing on inputs */
+  .form-control:focus, .form-select:focus {
+    background-color: #1a1d20;
+    border-color: #198754;
+    box-shadow: 0 0 0 0.25rem rgba(25, 135, 84, 0.25);
+    color: white;
+  }
+</style>
 
 {% endblock %}

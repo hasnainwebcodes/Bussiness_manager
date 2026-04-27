@@ -128,7 +128,16 @@ class Invite(models.Model):
 # 5) PROJECT
 
 class Project(models.Model):
+    STATUS_CHOICES = [
+        ('planning', 'Planning'),
+        ('active', 'Active'),
+        ('on_hold', 'On Hold'),
+        ('completed', 'Completed'),
+    ]
+
     name = models.CharField(max_length=255)
+    description = models.TextField(blank=True, null=True) # New
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='planning') # New
     company = models.ForeignKey(
         Company,
         on_delete=models.CASCADE,
@@ -139,12 +148,6 @@ class Project(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.company.name})"
-
-    class Meta:
-        # Free plan limitation: up to 3 projects
-        # Enforced in view/business logic.
-        pass
-
 
 # 6) COMPANY SUBSCRIPTION (Stripe link)
 
@@ -163,3 +166,16 @@ class CompanySubscription(models.Model):
 
     def __str__(self):
         return f"Subscription: {self.company.name} ({self.stripe_price_id})"
+        
+class Task(models.Model):
+    STATUS_CHOICES = [
+        ('not_started', 'Not Started'),
+        ('in_progress', 'In Progress'),
+        ('finished', 'Finished'),
+    ]
+    
+    title = models.CharField(max_length=255)
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name="tasks")
+    assigned_to = models.ForeignKey(TeamMember, on_delete=models.SET_NULL, null=True, blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='not_started')
+    created_at = models.DateTimeField(auto_now_add=True)
