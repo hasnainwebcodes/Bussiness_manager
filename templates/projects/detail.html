@@ -1,0 +1,128 @@
+{% extends "home.html" %}
+
+{% block title %}{{ project.name }} - Details{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'projects' %}" class="text-success text-decoration-none">Dashboard</a></li>
+            <li class="breadcrumb-item active text-white-50" aria-current="page">{{ project.name }}</li>
+        </ol>
+    </nav>
+
+    <div class="row align-items-center mb-5">
+        <div class="col-md-8">
+            <div class="d-flex align-items-center gap-3 mb-2">
+                <h1 class="text-white fw-bold mb-0">{{ project.name }}</h1>
+                <span class="badge {% if project.status == 'completed' %}bg-success text-dark{% else %}bg-info text-dark{% endif %} px-3 py-2">
+                    {{ project.get_status_display }}
+                </span>
+            </div>
+            <p class="text-secondary lead mb-0">{{ project.description|default:"No description provided." }}</p>
+        </div>
+        <div class="col-md-4 text-md-end mt-3 mt-md-0">
+            {% if role >= 20 %}
+                <a href="{% url 'add_task' project.id %}" class="btn btn-success btn-lg px-4 shadow-sm">
+                    <i class="bi bi-plus-circle me-2"></i>Add Task
+                </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="row g-4 mb-5">
+        <div class="col-lg-{% if company.plan == 'pro' %}8{% else %}12{% endif %}">
+            <div class="card bg-dark border-secondary p-4 h-100 shadow-sm">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="text-secondary small fw-bold text-uppercase mb-0">Project Progress</h6>
+                    <span class="text-white fw-bold">{{ project.progress_percentage }}%</span>
+                </div>
+                <div class="progress bg-secondary bg-opacity-25 mb-2" style="height: 15px;">
+                    <div class="progress-bar bg-success progress-bar-striped progress-bar-animated" 
+                         style="width: {{ project.progress_percentage }}%">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% if company.plan == 'pro' %}
+        <div class="col-lg-4">
+            <div class="card bg-dark border-secondary p-3 h-100 shadow-sm">
+                <h6 class="text-secondary small fw-bold text-uppercase mb-3 text-center">Task Distribution</h6>
+                <div style="height: 150px;">
+                    <canvas id="taskDetailChart"></canvas>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="card bg-dark border-secondary shadow">
+        <div class="card-header bg-dark border-secondary py-3 text-white fw-bold">
+            <i class="bi bi-list-check me-2 text-success"></i>Tasks
+        </div>
+        <div class="list-group list-group-flush">
+            {% for task in tasks %}
+                <div class="list-group-item bg-dark text-white border-secondary py-4">
+                    <div class="row align-items-center">
+                        <div class="col-md-6 mb-3 mb-md-0">
+                            <h6 class="fw-bold mb-1">{{ task.title }}</h6>
+                            <p class="text-secondary small mb-2">{{ task.description|default:"No instructions provided." }}</p>
+                            <span class="badge bg-secondary bg-opacity-50 extra-small">
+                                <i class="bi bi-person me-1"></i>
+                                {% if task.assigned_to %}{{ task.assigned_to.user.username }}{% else %}Unassigned{% endif %}
+                            </span>
+                        </div>
+
+                        <div class="col-md-6 d-flex justify-content-md-end align-items-center gap-4">
+                            <span class="badge {% if task.status == 'finished' %}bg-success text-dark{% elif task.status == 'in_progress' %}bg-info text-dark{% else %}bg-dark border border-secondary text-secondary{% endif %} px-3 py-2">
+                                {{ task.get_status_display }}
+                            </span>
+
+                            {% if role >= 20 or task.assigned_to.user == request.user or not task.assigned_to %}
+                                <div class="dropdown">
+                                    <button class="btn btn-sm btn-outline-light dropdown-toggle" type="button" data-bs-toggle="dropdown">Update</button>
+                                    <ul class="dropdown-menu dropdown-menu-dark">
+                                        <li><a class="dropdown-item" href="{% url 'update_task_status' task.id 'not_started' %}">Not Started</a></li>
+                                        <li><a class="dropdown-item" href="{% url 'update_task_status' task.id 'in_progress' %}">In Progress</a></li>
+                                        <li><hr class="dropdown-divider border-secondary"></li>
+                                        <li><a class="dropdown-item text-success fw-bold" href="{% url 'update_task_status' task.id 'finished' %}">Mark Finished</a></li>
+                                    </ul>
+                                </div>
+                            {% else %}
+                                <span class="text-muted small"><i class="bi bi-lock-fill"></i> Locked</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% empty %}
+                <div class="p-5 text-center text-secondary">No tasks found.</div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+{% if company.plan == 'pro' %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const ctx = document.getElementById('taskDetailChart');
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Pending', 'Active', 'Done'],
+            datasets: [{
+                data: [{{ analytics.not_started }}, {{ analytics.in_progress }}, {{ analytics.finished }}],
+                backgroundColor: ['#495057', '#0dcaf0', '#198754'],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { position: 'right', labels: { color: 'white', font: { size: 10 } } } }
+        }
+    });
+</script>
+{% endif %}
+{% endblock %}

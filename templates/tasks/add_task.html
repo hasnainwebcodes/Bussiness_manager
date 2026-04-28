@@ -1,0 +1,36 @@
+{% extends "home.html" %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card bg-dark border-secondary shadow">
+                <div class="card-body p-4">
+                    <h2 class="h4 text-white mb-4">Assign New Task</h2>
+                    <form method="POST">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label class="form-label text-secondary">Task Title</label>
+                            <input type="text" name="title" class="form-control bg-dark text-white border-secondary" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label text-secondary">Task Description (Instructions)</label>
+                            <textarea name="description" class="form-control bg-dark text-white border-secondary" rows="3"></textarea>
+                        </div>
+                        <div class="mb-4">
+                            <label class="form-label text-secondary">Assign To</label>
+                            <select name="assignee" class="form-select bg-dark text-white border-secondary">
+                                <option value="">Unassigned</option>
+                                {% for m in members %}
+                                    <option value="{{ m.id }}">{{ m.user }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-success w-100">Create Task</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

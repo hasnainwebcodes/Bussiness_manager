@@ -27,4 +27,7 @@ urlpatterns = [
     path('company/admin/<str:pk>/upgrade/', views.company_upgrade, name="company_upgrade"),
     path('company/admin/<str:pk>/ban/', views.company_ban, name="company_ban"),
     path('settings/team/', views.team_settings, name='team_settings'),
+    path('add_task/<int:project_id>/', views.add_task, name='add_task'),
+    path('projects/<int:project_id>/', views.project_detail, name='project_detail'),
+    path('tasks/<int:task_id>/update/<str:new_status>/', views.update_task_status, name='update_task_status'),
 ]

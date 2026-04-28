@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models import Count
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.utils import timezone
 
@@ -145,6 +146,13 @@ class Project(models.Model):
     )
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
+    @property
+    def progress_percentage(self):
+        total = self.tasks.count()
+        if total == 0:
+            return 0
+        finished = self.tasks.filter(status='finished').count()
+        return int((finished / total) * 100)
 
     def __str__(self):
         return f"{self.name} ({self.company.name})"
@@ -175,7 +183,30 @@ class Task(models.Model):
     ]
     
     title = models.CharField(max_length=255)
+    description = models.TextField(blank=True, null=True) # Your Task Description
     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name="tasks")
     assigned_to = models.ForeignKey(TeamMember, on_delete=models.SET_NULL, null=True, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='not_started')
     created_at = models.DateTimeField(auto_now_add=True)
+
+    def save(self, *args, **kwargs):
+        # 1. Save the task first so it exists in the DB
+        super().save(*args, **kwargs)
+        
+        # 2. Logic: Auto-update project status
+        total_tasks = self.project.tasks.count()
+        finished_tasks = self.project.tasks.filter(status='finished').count()
+
+        if total_tasks > 0 and total_tasks == finished_tasks:
+            # All tasks done -> Mark Project as Completed
+            if self.project.status != 'completed':
+                self.project.status = 'completed'
+                self.project.save()
+        else:
+            # If tasks remain or one was moved back from finished -> Ensure Project is Active
+            if self.project.status == 'completed':
+                self.project.status = 'active'
+                self.project.save()
+
+    def __str__(self):
+        return f"{self.title} - {self.get_status_display()}"

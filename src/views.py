@@ -10,6 +10,7 @@ from django.views.decorators.http import require_http_methods
 from django.utils import timezone
 from django.core.mail import send_mail
 from django.urls import reverse
+from .models import Task
 from django.conf import settings
 import stripe
 from uuid import uuid4
@@ -637,3 +638,113 @@ def team_settings(request):
         "invites": invites,
         "is_owner": member.role == MemberRole.OWNER
     })
+
+@login_required
+def project_list(request):
+    member = get_object_or_404(TeamMember, user=request.user)
+    company = member.company
+    projects = company.projects.all().prefetch_related('tasks')
+    
+    # PRO-ONLY DATA: Analytics
+    analytics_data = None
+    if company.plan == 'pro':
+        # Count tasks by status for the charts
+        status_counts = Task.objects.filter(project__company=company).values('status').annotate(count=Count('status'))
+        analytics_data = {
+            'not_started': 0,
+            'in_progress': 0,
+            'finished': 0
+        }
+        for item in status_counts:
+            analytics_data[item['status']] = item['count']
+
+    return render(request, "projects/list.html", {
+        "projects": projects,
+        "company": company,
+        "role": member.role,
+        "analytics": analytics_data
+    })
+
+@login_required
+def add_task(request, project_id):
+    project = get_object_or_404(Project, id=project_id)
+    company = project.company 
+    
+    if request.method == "POST":
+        title = request.POST.get('title')
+        description = request.POST.get('description')
+        assignee_id = request.POST.get('assignee') # This gets the ID from the <select>
+        
+        # Logic to handle empty assignee (Unassigned)
+        assignee = None
+        if assignee_id:
+            assignee = get_object_or_404(TeamMember, id=assignee_id, company=company)
+        
+        # Create the task with your description
+        Task.objects.create(
+            title=title,
+            description=description,
+            project=project,
+            assigned_to=assignee,
+            status='not_started'
+        )
+        
+        messages.success(request, f"Task '{title}' created and assigned!")
+        return redirect('project_detail', project_id=project.id)
+
+    # Fetch all members of the company so you can assign tasks to them
+    members = TeamMember.objects.filter(company=company).select_related('user')
+    
+    return render(request, "tasks/add_task.html", {
+        "project": project, 
+        "members": members
+    })
+
+
+@login_required
+def project_detail(request, project_id):
+    member = get_object_or_404(TeamMember, user=request.user)
+    # Ensure the project belongs to the user's company
+    project = get_object_or_404(Project, id=project_id, company=member.company)
+    tasks = project.tasks.all().select_related('assigned_to__user')
+
+    # Progress Calculation
+    total_tasks = tasks.count()
+    finished_tasks = tasks.filter(status='finished').count()
+    progress_percent = (finished_tasks / total_tasks * 100) if total_tasks > 0 else 0
+
+    # Pro-Only Chart Data
+    analytics = None
+    if member.company.plan == 'pro':
+        analytics = {
+            'not_started': tasks.filter(status='not_started').count(),
+            'in_progress': tasks.filter(status='in_progress').count(),
+            'finished': finished_tasks,
+        }
+
+    return render(request, "projects/detail.html", {
+        "project": project,
+        "tasks": tasks,
+        "progress": progress_percent,
+        "analytics": analytics,
+        "role": member.role
+    })
+@login_required
+def update_task_status(request, task_id, new_status):
+    # 1. Fetch the task and ensure it belongs to the user's company
+    member = get_object_or_404(TeamMember, user=request.user)
+    task = get_object_or_404(Task, id=task_id, project__company=member.company)
+    
+    # 2. Security Check: Only allow valid status transitions
+    valid_statuses = ['not_started', 'in_progress', 'finished']
+    
+    if new_status in valid_statuses:
+        task.status = new_status
+        # 3. Saving here triggers the Project auto-complete logic in the Task model
+        task.save() 
+        messages.success(request, f"Task '{task.title}' marked as {task.get_status_display()}.")
+    else:
+        messages.error(request, "Invalid status update.")
+
+    # 4. Redirect back to the project detail page
+    return redirect('project_detail', project_id=task.project.id)
