@@ -2,15 +2,24 @@ from django.db import models
 from django.db.models import Count
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.utils import timezone
+import re
 
 
 # 1) CUSTOM USER (JWT‑friendly)
 
+
 class CustomUserManager(BaseUserManager):
+    @staticmethod
+    def normalize_email_address(email):
+        email = BaseUserManager.normalize_email(email)
+        local, domain = email.rsplit('@', 1)
+        local = re.sub(r'\+.*', '', local)
+        return f"{local}@{domain}"
+
     def create_user(self, email, password=None, **extra_fields):
         if not email:
             raise ValueError("Email is required")
-        email = self.normalize_email(email)
+        email = self.normalize_email_address(email)
         user = self.model(email=email, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)
@@ -19,9 +28,8 @@ class CustomUserManager(BaseUserManager):
     def create_superuser(self, email, password=None, **extra_fields):
         extra_fields.setdefault("is_staff", True)
         extra_fields.setdefault("is_superuser", True)
+        extra_fields.setdefault("is_active", True)
         return self.create_user(email, password, **extra_fields)
-
-
 class CustomUser(AbstractUser):
     username = None  # we’ll use email
     email = models.EmailField(unique=True)
@@ -187,26 +195,27 @@ class Task(models.Model):
     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name="tasks")
     assigned_to = models.ForeignKey(TeamMember, on_delete=models.SET_NULL, null=True, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='not_started')
+    progress = models.PositiveSmallIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def save(self, *args, **kwargs):
-        # 1. Save the task first so it exists in the DB
+        if self.status == 'not_started':
+            self.progress = 0
+        elif self.status == 'finished':
+            self.progress = 100
         super().save(*args, **kwargs)
-        
-        # 2. Logic: Auto-update project status
-        total_tasks = self.project.tasks.count()
-        finished_tasks = self.project.tasks.filter(status='finished').count()
+        self._update_project_status()
 
-        if total_tasks > 0 and total_tasks == finished_tasks:
-            # All tasks done -> Mark Project as Completed
+    def _update_project_status(self):
+        total = self.project.tasks.count()
+        finished = self.project.tasks.filter(status='finished').count()
+        if total > 0 and total == finished:
             if self.project.status != 'completed':
                 self.project.status = 'completed'
-                self.project.save()
-        else:
-            # If tasks remain or one was moved back from finished -> Ensure Project is Active
-            if self.project.status == 'completed':
-                self.project.status = 'active'
-                self.project.save()
+                self.project.save(update_fields=['status'])
+        elif self.project.status == 'completed':
+            self.project.status = 'active'
+            self.project.save(update_fields=['status'])
 
     def __str__(self):
         return f"{self.title} - {self.get_status_display()}"

@@ -17,7 +17,6 @@ urlpatterns = [
     path('projects/', views.projects, name="projects"),
     path('projects/create/', views.create_projects, name="create_projects"),
     path('billing/', views.billing, name="billing"),
-    path('billing/upgrade/pro/', views.upgrade_pro, name="upgrade_pro"),
     path('billing/checkout-session/', views.checkout_session, name="checkout_session"),
     path('webhook/stripe/', views.stripe_webhook, name="webhook_stripe"),
     path('billing/success/', views.billing_success, name="billing_success"),
@@ -30,4 +29,5 @@ urlpatterns = [
     path('add_task/<int:project_id>/', views.add_task, name='add_task'),
     path('projects/<int:project_id>/', views.project_detail, name='project_detail'),
     path('tasks/<int:task_id>/update/<str:new_status>/', views.update_task_status, name='update_task_status'),
+    path('tasks/<int:task_id>/progress/', views.update_task_progress, name='update_task_progress'),
 ]

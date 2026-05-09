@@ -1,3 +1,5 @@
+from django.db.models import Count
+from django.db.models import Sum
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponse, JsonResponse
 from django.contrib.auth import login, authenticate, logout
@@ -6,7 +8,7 @@ from django.contrib import messages
 from .tokens import email_verification_token
 from .decorators import require_role
 from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_http_methods
+from django.views.decorators.http import require_http_methods, require_POST
 from django.utils import timezone
 from django.core.mail import send_mail
 from django.urls import reverse
@@ -420,9 +422,6 @@ def billing(request):
         "subscription": subscription,
     }
     return render(request, "billing/index.html", context)
-@login_required
-def upgrade_pro(request):
-    return redirect("billing_success")
 
 
 @csrf_exempt
@@ -519,23 +518,20 @@ def stripe_webhook(request):
 @login_required
 def billing_success(request):
     member = get_object_or_404(TeamMember, user=request.user, role=MemberRole.OWNER)
+    session_id = request.GET.get('session_id')
 
-    company = member.company
-    company.plan = "pro"
-    company.save()
+    if session_id:
+        try:
+            session = stripe.checkout.Session.retrieve(session_id)
+            if session.payment_status == 'paid':
+                company = member.company
+                company.plan = Company.PRO
+                company.save()
+                messages.success(request, "Successfully upgraded to Pro!")
+        except stripe.error.StripeError:
+            messages.error(request, "Could not verify payment. Contact support.")
 
-    CompanySubscription.objects.get_or_create(
-        company=company,
-        defaults={
-            "stripe_customer_id": "cus_sandbox_123",
-            "stripe_subscription_id": "sub_sandbox_456",
-            "current_period_end": timezone.now() + timezone.timedelta(days=30),
-        }
-    )
-
-    messages.success(request, "✅ Successfully upgraded to Pro plan!")
     return render(request, "billing/billing_success.html")
-
 
 @login_required
 @require_http_methods(["POST"])
@@ -704,16 +700,19 @@ def add_task(request, project_id):
 @login_required
 def project_detail(request, project_id):
     member = get_object_or_404(TeamMember, user=request.user)
-    # Ensure the project belongs to the user's company
     project = get_object_or_404(Project, id=project_id, company=member.company)
     tasks = project.tasks.all().select_related('assigned_to__user')
 
-    # Progress Calculation
     total_tasks = tasks.count()
-    finished_tasks = tasks.filter(status='finished').count()
-    progress_percent = (finished_tasks / total_tasks * 100) if total_tasks > 0 else 0
+    total_tasks = tasks.count()
+    if total_tasks > 0:
+        total_progress = tasks.aggregate(total=Sum('progress'))['total'] or 0
+        progress_percent = round(total_progress / total_tasks)
+    else:
+        progress_percent = 0
 
-    # Pro-Only Chart Data
+    finished_tasks = tasks.filter(status='finished').count()
+
     analytics = None
     if member.company.plan == 'pro':
         analytics = {
@@ -727,8 +726,10 @@ def project_detail(request, project_id):
         "tasks": tasks,
         "progress": progress_percent,
         "analytics": analytics,
-        "role": member.role
+        "role": member.role,
+        "company": member.company,   # ← this was missing
     })
+
 @login_required
 def update_task_status(request, task_id, new_status):
     # 1. Fetch the task and ensure it belongs to the user's company
@@ -748,3 +749,37 @@ def update_task_status(request, task_id, new_status):
 
     # 4. Redirect back to the project detail page
     return redirect('project_detail', project_id=task.project.id)
+@login_required
+@require_http_methods(["POST"])
+def billing_portal(request):
+    member = get_object_or_404(TeamMember, user=request.user, role=MemberRole.OWNER)
+    subscription = get_object_or_404(CompanySubscription, company=member.company)
+
+    try:
+        portal_session = stripe.billing_portal.Session.create(
+            customer=subscription.stripe_customer_id,
+            return_url=request.build_absolute_uri(reverse('billing')),
+        )
+        return redirect(portal_session.url)
+    except stripe.error.StripeError as e:
+        messages.error(request, f"Could not open billing portal: {str(e)}")
+        return redirect('billing')
+@login_required
+@require_POST
+def update_task_progress(request, task_id):
+    member = get_object_or_404(TeamMember, user=request.user)
+    task = get_object_or_404(Task, id=task_id, project__company=member.company)
+
+    progress = int(request.POST.get('progress', 0))
+    progress = max(0, min(100, progress))
+
+    task.progress = progress
+    if progress == 0:
+        task.status = 'not_started'
+    elif progress == 100:
+        task.status = 'finished'
+    else:
+        task.status = 'in_progress'
+    task.save()
+
+    return JsonResponse({'progress': task.progress, 'status': task.status})

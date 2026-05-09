@@ -1,13 +1,14 @@
 {% extends "home.html" %}
-
 {% block title %}{{ project.name }} - Details{% endblock %}
 
 {% block content %}
 <div class="container py-4">
-    
+
     <nav aria-label="breadcrumb" class="mb-4">
         <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{% url 'projects' %}" class="text-success text-decoration-none">Dashboard</a></li>
+            <li class="breadcrumb-item">
+                <a href="{% url 'projects' %}" class="text-success text-decoration-none">Projects</a>
+            </li>
             <li class="breadcrumb-item active text-white-50" aria-current="page">{{ project.name }}</li>
         </ol>
     </nav>
@@ -31,16 +32,18 @@
         </div>
     </div>
 
+    <!-- Project Progress Bar -->
     <div class="row g-4 mb-5">
         <div class="col-lg-{% if company.plan == 'pro' %}8{% else %}12{% endif %}">
             <div class="card bg-dark border-secondary p-4 h-100 shadow-sm">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h6 class="text-secondary small fw-bold text-uppercase mb-0">Project Progress</h6>
-                    <span class="text-white fw-bold">{{ project.progress_percentage }}%</span>
+                    <span class="text-white fw-bold" id="project-progress-label">{{ progress|floatformat:0 }}%</span>
                 </div>
-                <div class="progress bg-secondary bg-opacity-25 mb-2" style="height: 15px;">
-                    <div class="progress-bar bg-success progress-bar-striped progress-bar-animated" 
-                         style="width: {{ project.progress_percentage }}%">
+                <div class="progress bg-secondary bg-opacity-25" style="height: 15px;">
+                    <div class="progress-bar bg-success progress-bar-striped progress-bar-animated"
+                         id="project-progress-bar"
+                         style="width: {{ progress|floatformat:0 }}%">
                     </div>
                 </div>
             </div>
@@ -58,59 +61,91 @@
         {% endif %}
     </div>
 
+    <!-- Tasks List -->
     <div class="card bg-dark border-secondary shadow">
         <div class="card-header bg-dark border-secondary py-3 text-white fw-bold">
             <i class="bi bi-list-check me-2 text-success"></i>Tasks
         </div>
         <div class="list-group list-group-flush">
             {% for task in tasks %}
-                <div class="list-group-item bg-dark text-white border-secondary py-4">
-                    <div class="row align-items-center">
-                        <div class="col-md-6 mb-3 mb-md-0">
-                            <h6 class="fw-bold mb-1">{{ task.title }}</h6>
-                            <p class="text-secondary small mb-2">{{ task.description|default:"No instructions provided." }}</p>
-                            <span class="badge bg-secondary bg-opacity-50 extra-small">
-                                <i class="bi bi-person me-1"></i>
-                                {% if task.assigned_to %}{{ task.assigned_to.user.username }}{% else %}Unassigned{% endif %}
-                            </span>
-                        </div>
+            <div class="list-group-item bg-dark text-white border-secondary py-4">
+                <div class="row align-items-center">
 
-                        <div class="col-md-6 d-flex justify-content-md-end align-items-center gap-4">
-                            <span class="badge {% if task.status == 'finished' %}bg-success text-dark{% elif task.status == 'in_progress' %}bg-info text-dark{% else %}bg-dark border border-secondary text-secondary{% endif %} px-3 py-2">
-                                {{ task.get_status_display }}
-                            </span>
-
-                            {% if role >= 20 or task.assigned_to.user == request.user or not task.assigned_to %}
-                                <div class="dropdown">
-                                    <button class="btn btn-sm btn-outline-light dropdown-toggle" type="button" data-bs-toggle="dropdown">Update</button>
-                                    <ul class="dropdown-menu dropdown-menu-dark">
-                                        <li><a class="dropdown-item" href="{% url 'update_task_status' task.id 'not_started' %}">Not Started</a></li>
-                                        <li><a class="dropdown-item" href="{% url 'update_task_status' task.id 'in_progress' %}">In Progress</a></li>
-                                        <li><hr class="dropdown-divider border-secondary"></li>
-                                        <li><a class="dropdown-item text-success fw-bold" href="{% url 'update_task_status' task.id 'finished' %}">Mark Finished</a></li>
-                                    </ul>
-                                </div>
-                            {% else %}
-                                <span class="text-muted small"><i class="bi bi-lock-fill"></i> Locked</span>
-                            {% endif %}
-                        </div>
+                    <!-- Task Info -->
+                    <div class="col-md-5 mb-3 mb-md-0">
+                        <h6 class="fw-bold mb-1">{{ task.title }}</h6>
+                        <p class="text-secondary small mb-2">{{ task.description|default:"No instructions provided." }}</p>
+                        <span class="badge bg-secondary bg-opacity-50 extra-small">
+                            <i class="bi bi-person me-1"></i>
+                            {% if task.assigned_to %}{{ task.assigned_to.user }}{% else %}Unassigned{% endif %}
+                        </span>
                     </div>
+
+                    <!-- Progress Slider — only shown when in_progress -->
+                    <div class="col-md-4 mb-3 mb-md-0">
+                        {% if task.status == 'in_progress' %}
+                        <div class="px-2">
+                            <div class="d-flex justify-content-between mb-1">
+                                <small class="text-secondary">Progress</small>
+                                <small class="text-white fw-bold" id="label-{{ task.id }}">{{ task.progress }}%</small>
+                            </div>
+                            <input
+                                type="range"
+                                class="form-range task-progress-slider"
+                                min="0" max="100" step="5"
+                                value="{{ task.progress }}"
+                                data-task-id="{{ task.id }}"
+                                id="slider-{{ task.id }}"
+                                {% if not role >= 20 and task.assigned_to.user != request.user %}disabled{% endif %}
+                            >
+                        </div>
+                        {% else %}
+                            <span class="text-secondary small">—</span>
+                        {% endif %}
+                    </div>
+
+                    <!-- Status Badge + Update Dropdown -->
+                    <div class="col-md-3 d-flex justify-content-md-end align-items-center gap-3">
+                        <span class="badge {% if task.status == 'finished' %}bg-success text-dark{% elif task.status == 'in_progress' %}bg-info text-dark{% else %}bg-dark border border-secondary text-secondary{% endif %} px-3 py-2"
+                              id="status-badge-{{ task.id }}">
+                            {{ task.get_status_display }}
+                        </span>
+
+                        {% if role >= 20 or task.assigned_to.user == request.user or not task.assigned_to %}
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-light dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                Update
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-dark">
+                                <li><a class="dropdown-item" href="{% url 'update_task_status' task.id 'not_started' %}">Not Started</a></li>
+                                <li><a class="dropdown-item" href="{% url 'update_task_status' task.id 'in_progress' %}">In Progress</a></li>
+                                <li><hr class="dropdown-divider border-secondary"></li>
+                                <li><a class="dropdown-item text-success fw-bold" href="{% url 'update_task_status' task.id 'finished' %}">Mark Finished</a></li>
+                            </ul>
+                        </div>
+                        {% else %}
+                            <span class="text-muted small"><i class="bi bi-lock-fill"></i> Locked</span>
+                        {% endif %}
+                    </div>
+
                 </div>
+            </div>
             {% empty %}
-                <div class="p-5 text-center text-secondary">No tasks found.</div>
+            <div class="p-5 text-center text-secondary">No tasks yet. Add your first task above.</div>
             {% endfor %}
         </div>
     </div>
 </div>
 
+<!-- Scripts -->
 {% if company.plan == 'pro' %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     const ctx = document.getElementById('taskDetailChart');
-    new Chart(ctx, {
+    const taskChart = new Chart(ctx, {
         type: 'doughnut',
         data: {
-            labels: ['Pending', 'Active', 'Done'],
+            labels: ['Pending', 'In Progress', 'Done'],
             datasets: [{
                 data: [{{ analytics.not_started }}, {{ analytics.in_progress }}, {{ analytics.finished }}],
                 backgroundColor: ['#495057', '#0dcaf0', '#198754'],
@@ -120,9 +155,88 @@
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: { legend: { position: 'right', labels: { color: 'white', font: { size: 10 } } } }
+            plugins: {
+                legend: {
+                    position: 'right',
+                    labels: { color: 'white', font: { size: 10 } }
+                }
+            }
         }
     });
 </script>
 {% endif %}
+
+<script>
+    const totalTasks = {{ tasks|length }};
+
+    // Debounce so we don't spam the server on every slider tick
+    function debounce(fn, delay) {
+        let timer;
+        return function(...args) {
+            clearTimeout(timer);
+            timer = setTimeout(() => fn.apply(this, args), delay);
+        };
+    }
+
+    function updateProjectBar() {
+        // Recalculate project progress from all sliders + finished tasks
+        const sliders = document.querySelectorAll('.task-progress-slider');
+        const finishedBadges = document.querySelectorAll('[id^="status-badge-"]');
+
+        let totalProgress = 0;
+        let counted = 0;
+
+        finishedBadges.forEach(badge => {
+            const taskId = badge.id.replace('status-badge-', '');
+            const slider = document.getElementById('slider-' + taskId);
+
+            if (badge.textContent.trim() === 'Finished') {
+                totalProgress += 100;
+            } else if (slider) {
+                totalProgress += parseInt(slider.value);
+            }
+            // not_started tasks contribute 0
+            counted++;
+        });
+
+        if (counted === 0) return;
+        const avg = Math.round(totalProgress / counted);
+
+        document.getElementById('project-progress-bar').style.width = avg + '%';
+        document.getElementById('project-progress-label').textContent = avg + '%';
+    }
+
+    const sendProgress = debounce(function(taskId, progress) {
+        fetch(`/tasks/${taskId}/progress/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: `progress=${progress}`
+        })
+        .then(res => res.json())
+        .then(data => {
+            console.log('Saved:', data);
+        })
+        .catch(err => console.error('Error saving progress:', err));
+    }, 500);
+
+    document.querySelectorAll('.task-progress-slider').forEach(slider => {
+        slider.addEventListener('input', function() {
+            const taskId = this.dataset.taskId;
+            const value = this.value;
+
+            // Update the label next to slider live
+            document.getElementById('label-' + taskId).textContent = value + '%';
+
+            // Update project bar live
+            updateProjectBar();
+
+            // Save to server (debounced)
+            sendProgress(taskId, value);
+        });
+    });
+</script>
+
 {% endblock %}
