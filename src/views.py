@@ -155,6 +155,7 @@ def user_login(request):
             return redirect("dashboard")
         else:
             messages.error(request, "Invalid email or password.")
+            return render(request, "login.html", {"show_forgot": True})
 
     return render(request, "login.html")
 
@@ -556,7 +557,7 @@ def billing_cancel(request):
 @login_required
 def admin_dashboard(request):
     if not request.user.is_superuser:
-        return HttpResponse("Access Denied", status=403)
+        return render(request, "403.html")
 
     companies = Company.objects.all().order_by("-last_active" if hasattr(Company, 'last_active') else "-id")
     context = {"companies": companies}

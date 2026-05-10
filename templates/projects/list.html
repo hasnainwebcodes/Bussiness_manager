@@ -1,94 +1,114 @@
 {% extends "home.html" %}
-
-{% block title %}Projects - {{ company.name }}{% endblock %}
+{% block title %}Projects — {{ company.name }}{% endblock %}
 
 {% block content %}
-<div class="container py-5">
 
-  <div class="d-flex flex-wrap justify-content-between align-items-center mb-5 gap-3">
-    <div>
-      <h1 class="display-6 fw-bold mb-1 text-white">Project Dashboard</h1>
-      <p class="text-secondary mb-0">Managing workspace: <strong>{{ company.name }}</strong></p>
-    </div>
-    
-    {% if role >= 20 %}
-      <a href="{% url 'create_projects' %}" class="btn btn-success btn-lg shadow-sm">
-        <i class="bi bi-plus-lg me-2"></i>New Project
-      </a>
-    {% endif %}
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+  <div>
+    <h1 class="fw-bold text-white mb-1">Projects</h1>
+    <p class="text-secondary small mb-0">{{ company.name }}
+      {% if company.plan == 'pro' %}<span class="pro-badge ms-2">Pro ✦</span>{% endif %}
+    </p>
   </div>
-
-  {% if messages %}
-    {% for m in messages %}
-      <div class="alert alert-{{ m.tags }} alert-dismissible fade show bg-dark text-white border-secondary">
-        {{ m }}
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert"></button>
-      </div>
-    {% endfor %}
-  {% endif %}
-
-  {% if projects %}
-    <div class="row g-4">
-      {% for p in projects %}
-        <div class="col-md-6 col-lg-4">
-          <div class="card bg-dark border-secondary h-100 shadow-sm project-hover">
-            <div class="card-body d-flex flex-column p-4">
-              <div class="d-flex justify-content-between align-items-start mb-3">
-                <h5 class="card-title fw-bold text-white mb-0">{{ p.name }}</h5>
-                <span class="badge {% if p.status == 'completed' %}bg-success text-dark{% elif p.status == 'active' %}bg-info text-dark{% else %}bg-secondary{% endif %}">
-                  {{ p.get_status_display }}
-                </span>
-              </div>
-              
-              <p class="text-secondary small mb-4">
-                {{ p.description|default:"No description provided."|truncatechars:85 }}
-              </p>
-
-              <div class="mt-auto">
-                <div class="d-flex justify-content-between mb-1">
-                  <span class="text-secondary extra-small">Task Progress</span>
-                  <span class="text-white extra-small fw-bold">{{ p.progress_percentage }}%</span>
-                </div>
-                <div class="progress bg-secondary bg-opacity-25" style="height: 6px;">
-                  <div class="progress-bar bg-success" role="progressbar" 
-                       style="width: {{ p.progress_percentage }}%;">
-                  </div> 
-                </div>
-              </div>
-
-              <div class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top border-secondary">
-                <span class="text-muted extra-small">Created {{ p.created_at|date:"M d" }}</span>
-                <a href="{% url 'project_detail' p.id %}" class="btn btn-sm btn-outline-light px-3 fw-bold">Open Project</a>
-              </div>
-            </div>
-          </div>
-        </div>
-      {% endfor %}
-    </div>
-  {% else %}
-    <div class="text-center py-5">
-      <div class="p-5 bg-dark border border-secondary border-dashed rounded-3">
-        <h3 class="text-secondary">No projects yet</h3>
-        <p class="lead text-muted small">Start by creating a workspace for your team.</p>
-        {% if role >= 20 %}
-          <a href="{% url 'create_projects' %}" class="btn btn-success btn-lg px-5 mt-3 shadow">
-            + Create First Project
-          </a>
-        {% endif %}
-      </div>
-    </div>
+  {% if role >= 20 %}
+    <a href="{% url 'create_projects' %}" class="btn btn-success">
+      <i class="bi bi-plus-lg me-1"></i>New Project
+    </a>
   {% endif %}
 </div>
 
-<style>
-  .extra-small { font-size: 0.75rem; }
-  .project-hover { transition: transform 0.25s ease, border-color 0.2s ease, box-shadow 0.25s ease; }
-  .project-hover:hover { 
-    transform: translateY(-8px); 
-    border-color: #198754 !important;
-    box-shadow: 0 10px 20px rgba(0,0,0,0.4) !important;
-  }
-  .border-dashed { border-style: dashed !important; }
-  .progress-bar { transition: width 0.6s ease; }
-</style>
+{% if company.plan == 'free' %}
+<div class="alert mb-4 d-flex justify-content-between align-items-center"
+     style="background:rgba(234,179,8,0.1); border:1px solid rgba(234,179,8,0.3); border-radius:8px;">
+  <div>
+    <i class="bi bi-exclamation-triangle text-warning me-2"></i>
+    <span class="text-warning">Free plan: <strong>{{ projects|length }}/3</strong> projects used.</span>
+  </div>
+  <a href="{% url 'billing' %}" class="btn btn-warning btn-sm text-dark fw-bold">Upgrade to Pro</a>
+</div>
+{% endif %}
+
+{% if projects %}
+  <div class="row g-4">
+    {% for p in projects %}
+      <div class="col-md-6 col-lg-4">
+        <div class="card h-100 project-hover">
+          <div class="card-body d-flex flex-column p-4">
+
+            <div class="d-flex justify-content-between align-items-start mb-3">
+              <h5 class="text-white fw-bold mb-0">{{ p.name }}</h5>
+              <span class="badge {% if p.status == 'completed' %}bg-success{% elif p.status == 'active' %}bg-info{% else %}bg-secondary{% endif %} text-dark">
+                {{ p.get_status_display }}
+              </span>
+            </div>
+
+            <p class="text-secondary small mb-4">
+              {{ p.description|default:"No description provided."|truncatechars:85 }}
+            </p>
+
+            <div class="mt-auto">
+              <div class="d-flex justify-content-between mb-1">
+                <span class="extra-small text-secondary">Progress</span>
+                <span class="extra-small text-white fw-bold">{{ p.progress_percentage }}%</span>
+              </div>
+              <div class="progress mb-3" style="height:5px; background:rgba(255,255,255,0.08);">
+                <div class="progress-bar bg-success" style="width:{{ p.progress_percentage }}%;"></div>
+              </div>
+              <div class="d-flex justify-content-between align-items-center pt-2"
+                   style="border-top:1px solid var(--border);">
+                <span class="extra-small text-muted">{{ p.created_at|date:"M d, Y" }}</span>
+                <a href="{% url 'project_detail' p.id %}" class="btn btn-sm btn-outline-light px-3">Open</a>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+
+  <!-- Pro Analytics -->
+  {% if company.plan == 'pro' and analytics %}
+  <div class="card mt-5 p-4">
+    <h6 class="text-secondary small fw-bold text-uppercase mb-3">
+      <span class="pro-badge me-2">Pro ✦</span>Analytics
+    </h6>
+    <div class="row g-3 text-center">
+      <div class="col-md-4">
+        <div class="p-3 rounded-3" style="background:rgba(255,255,255,0.03);">
+          <div class="fs-3 fw-bold text-secondary">{{ analytics.not_started }}</div>
+          <div class="text-secondary small">Not Started</div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="p-3 rounded-3" style="background:rgba(255,255,255,0.03);">
+          <div class="fs-3 fw-bold text-info">{{ analytics.in_progress }}</div>
+          <div class="text-secondary small">In Progress</div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="p-3 rounded-3" style="background:rgba(255,255,255,0.03);">
+          <div class="fs-3 fw-bold text-success">{{ analytics.finished }}</div>
+          <div class="text-secondary small">Finished</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+{% else %}
+  <div class="text-center py-5">
+    <div class="p-5 rounded-3 border border-dashed" style="border-color:var(--border) !important;">
+      <i class="bi bi-folder2 text-secondary" style="font-size:3rem;"></i>
+      <h4 class="text-secondary mt-3">No projects yet</h4>
+      <p class="text-muted small">Start by creating your first project.</p>
+      {% if role >= 20 %}
+        <a href="{% url 'create_projects' %}" class="btn btn-success px-5 mt-2">
+          <i class="bi bi-plus-lg me-2"></i>Create First Project
+        </a>
+      {% endif %}
+    </div>
+  </div>
+{% endif %}
+
 {% endblock %}

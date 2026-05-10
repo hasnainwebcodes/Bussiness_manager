@@ -1,129 +1,124 @@
 {% extends "home.html" %}
-
 {% block title %}Admin — {{ company.name }}{% endblock %}
 
 {% block content %}
 
-<div class="container py-5">
-
-  <div class="d-flex justify-content-between align-items-center mb-4">
-    <div>
-      <h1 class="display-6 fw-bold">{{ company.name }}</h1>
-      <p class="text-secondary">
-        Owner: <strong>{{ company.owner.email }}</strong> 
-        | Plan: <strong class="text-uppercase">{{ company.plan }}</strong>
-        {% if company.is_banned %}
-          <span class="badge bg-danger ms-2">BANNED</span>
-        {% endif %}
-      </p>
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <a href="{% url 'admin' %}" class="text-secondary text-decoration-none small">
+      <i class="bi bi-arrow-left me-1"></i>All Companies
+    </a>
+    <h1 class="text-white fw-bold mt-2 mb-1">{{ company.name }}</h1>
+    <div class="d-flex align-items-center gap-2 flex-wrap">
+      <span class="text-secondary small">Owner: <strong class="text-white">{{ company.owner.email }}</strong></span>
+      <span class="badge
+        {% if company.plan == 'pro' %}bg-primary
+        {% elif company.plan == 'business' %}bg-info text-dark
+        {% else %}bg-secondary{% endif %}">
+        {{ company.plan|upper }}
+      </span>
+      {% if company.is_banned %}<span class="badge bg-danger">BANNED</span>{% endif %}
     </div>
-    <a href="{% url 'admin' %}" class="btn btn-outline-light">← Back to All Companies</a>
+  </div>
+</div>
+
+<div class="row g-4 mb-4">
+
+  <!-- Members -->
+  <div class="col-lg-6">
+    <div class="card">
+      <div class="card-header py-3">
+        Members <span class="badge bg-secondary ms-1">{{ members|length }}</span>
+      </div>
+      <div class="list-group list-group-flush">
+        {% for m in members %}
+        <div class="list-group-item d-flex justify-content-between align-items-center py-3"
+             style="background:var(--bg-card); border-color:var(--border);">
+          <span class="text-white small">{{ m.user.email }}</span>
+          <span class="badge
+            {% if m.role == 30 %}bg-danger
+            {% elif m.role == 20 %}bg-warning text-dark
+            {% else %}bg-secondary{% endif %}">
+            {{ m.get_role_display }}
+          </span>
+        </div>
+        {% empty %}
+          <div class="p-4 text-center text-secondary small">No members.</div>
+        {% endfor %}
+      </div>
+    </div>
   </div>
 
-  {% if messages %}
-    {% for m in messages %}
-      <div class="alert alert-{{ m.tags }} alert-dismissible fade show">
-        {{ m }}
+  <!-- Projects -->
+  <div class="col-lg-6">
+    <div class="card">
+      <div class="card-header py-3">
+        Projects <span class="badge bg-secondary ms-1">{{ projects|length }}</span>
       </div>
-    {% endfor %}
+      <div class="list-group list-group-flush">
+        {% for p in projects %}
+        <div class="list-group-item d-flex justify-content-between align-items-center py-3"
+             style="background:var(--bg-card); border-color:var(--border);">
+          <span class="text-white small fw-medium">{{ p.name }}</span>
+          <small class="text-secondary">{{ p.created_at|date:"M d, Y" }}</small>
+        </div>
+        {% empty %}
+          <div class="p-4 text-center text-secondary small">No projects.</div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Subscription -->
+{% if subscription %}
+<div class="card mb-4 p-4">
+  <h6 class="text-secondary small fw-bold text-uppercase mb-3">Stripe Subscription</h6>
+  <div class="row g-3">
+    <div class="col-md-6">
+      <p class="small mb-1 text-secondary"><strong class="text-white">Customer ID:</strong></p>
+      <code class="text-info">{{ subscription.stripe_customer_id }}</code>
+    </div>
+    <div class="col-md-6">
+      <p class="small mb-1 text-secondary"><strong class="text-white">Subscription ID:</strong></p>
+      <code class="text-info">{{ subscription.stripe_subscription_id }}</code>
+    </div>
+    <div class="col-md-6">
+      <p class="small mb-1 text-secondary"><strong class="text-white">Period Ends:</strong></p>
+      <span class="text-white small">{{ subscription.current_period_end|date:"M d, Y H:i" }}</span>
+    </div>
+    <div class="col-md-6">
+      <p class="small mb-1 text-secondary"><strong class="text-white">Status:</strong></p>
+      <span class="badge bg-success">Active</span>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Action Buttons (POST forms to prevent accidental GET) -->
+<div class="d-flex gap-3 flex-wrap">
+  {% if not company.is_banned %}
+    <form method="POST" action="{% url 'company_upgrade' pk=company.pk %}"
+          onsubmit="return confirm('Upgrade {{ company.name }} to Pro for free?')">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-success px-4">
+        <i class="bi bi-lightning-fill me-2"></i>Manually Upgrade to Pro
+      </button>
+    </form>
+    <form method="POST" action="{% url 'company_ban' pk=company.pk %}"
+          onsubmit="return confirm('Ban {{ company.name }}? They will lose all access.')">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-danger px-4">
+        <i class="bi bi-slash-circle me-2"></i>Ban Company
+      </button>
+    </form>
+  {% else %}
+    <div class="alert alert-danger mb-0">
+      <i class="bi bi-slash-circle me-2"></i>
+      This company is currently <strong>banned</strong> and cannot access the platform.
+    </div>
   {% endif %}
-
-  <div class="row g-4">
-
-    <!-- Members -->
-    <div class="col-lg-6">
-      <div class="card bg-dark border-secondary shadow-sm">
-        <div class="card-header bg-dark border-secondary">
-          <h5 class="mb-0">Team Members ({{ members|length }})</h5>
-        </div>
-        <div class="card-body">
-          {% for m in members %}
-            <div class="d-flex justify-content-between align-items-center py-2 border-bottom border-secondary">
-              <div>
-                <strong>{{ m.user.email }}</strong>
-              </div>
-              <span class="badge 
-                {% if m.role == 30 %}bg-danger
-                {% elif m.role == 20 %}bg-warning text-dark
-                {% else %}bg-secondary{% endif %}">
-                {{ m.get_role_display }}
-              </span>
-            </div>
-          {% empty %}
-            <p class="text-secondary text-center py-3">No members found.</p>
-          {% endfor %}
-        </div>
-      </div>
-    </div>
-
-    <!-- Projects -->
-    <div class="col-lg-6">
-      <div class="card bg-dark border-secondary shadow-sm">
-        <div class="card-header bg-dark border-secondary">
-          <h5 class="mb-0">Projects ({{ projects|length }})</h5>
-        </div>
-        <div class="card-body">
-          {% for p in projects %}
-            <div class="d-flex justify-content-between align-items-center py-2 border-bottom border-secondary">
-              <strong>{{ p.name }}</strong>
-              <small class="text-secondary">{{ p.created_at|date:"M d, Y" }}</small>
-            </div>
-          {% empty %}
-            <p class="text-secondary text-center py-3">No projects created yet.</p>
-          {% endfor %}
-        </div>
-      </div>
-    </div>
-
-    <!-- Subscription Details -->
-    {% if subscription %}
-    <div class="col-12">
-      <div class="card bg-dark border-secondary shadow-sm">
-        <div class="card-header bg-dark border-secondary">
-          <h5 class="mb-0">Stripe Subscription Details</h5>
-        </div>
-        <div class="card-body">
-          <div class="row">
-            <div class="col-md-6">
-              <p><strong>Customer ID:</strong><br>{{ subscription.stripe_customer_id }}</p>
-            </div>
-            <div class="col-md-6">
-              <p><strong>Subscription ID:</strong><br>{{ subscription.stripe_subscription_id }}</p>
-            </div>
-            <div class="col-md-6">
-              <p><strong>Price ID:</strong><br>{{ subscription.stripe_price_id }}</p>
-            </div>
-            <div class="col-md-6">
-              <p><strong>Current Period Ends:</strong><br>{{ subscription.current_period_end|date:"M d, Y H:i" }}</p>
-            </div>
-          </div>
-          <p class="mb-0">
-            <strong>Status:</strong> 
-            <span class="badge bg-success">Active</span>
-          </p>
-        </div>
-      </div>
-    </div>
-    {% endif %}
-
-  </div>
-
-  <!-- Action Buttons -->
-  <div class="mt-5">
-    {% if not company.is_banned %}
-      <a href="{% url 'company_upgrade' pk=company.pk %}" 
-         class="btn btn-success btn-lg me-3">
-        Manually Upgrade to Pro (Free)
-      </a>
-      <a href="{% url 'company_ban' pk=company.pk %}" 
-         class="btn btn-danger btn-lg">
-        Ban This Company
-      </a>
-    {% else %}
-      <span class="badge bg-danger fs-5 p-3">This company is currently banned.</span>
-    {% endif %}
-  </div>
-
 </div>
 
 {% endblock %}

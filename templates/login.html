@@ -44,8 +44,14 @@
               Log In
             </button>
           </form>
-
-          <div class="text-center mt-4 text-secondary">
+          {% if show_forgot %}
+          <div class="text-center mt-3">
+              <a href="{% url 'password_reset' %}" class="text-light fw-medium">
+              Forgot your password?
+            </a>
+          </div>
+          {% endif %}
+          <div class="text-center mt-4 text-secondary ">
             Don't have an account? 
             <a href="{% url 'register' %}" class="text-light fw-medium">Create one here</a>
           </div>

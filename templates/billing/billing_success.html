@@ -1,39 +1,22 @@
-{% extends "../home.html" %}   <!-- Go up one folder to find home.html -->
-
-{% block title %}Upgrade Successful - BusinessManager{% endblock %}
+{% extends "home.html" %}
+{% block title %}Upgrade Successful — BusinessManager{% endblock %}
 
 {% block content %}
-
-<div class="container py-5">
-  <div class="row justify-content-center">
-    <div class="col-md-8 col-lg-6 text-center">
-      <div class="card bg-dark border-success shadow-sm">
-        <div class="card-body p-5">
-          
-          <div class="mb-4">
-            <h1 class="text-success display-4 fw-bold">🎉 Success!</h1>
-          </div>
-          
-          <h3 class="mb-4">Your workspace is now on <strong>Pro Plan</strong></h3>
-          
-          <p class="lead text-secondary mb-5">
-            Unlimited projects unlocked.<br>
-            You and your team can now create as many projects as you want.
-          </p>
-
-          <div class="d-grid gap-3 d-md-flex justify-content-center">
-            <a href="{% url 'projects' %}" class="btn btn-success btn-lg px-5">
-              Go to Projects
-            </a>
-            <a href="{% url 'dashboard' %}" class="btn btn-outline-light btn-lg px-5">
-              Back to Dashboard
-            </a>
-          </div>
-
-        </div>
+<div class="row justify-content-center py-5">
+  <div class="col-md-8 col-lg-6 text-center">
+    <div class="card p-5">
+      <div class="fs-1 mb-3">🎉</div>
+      <h2 class="text-success fw-bold mb-2">You're on Pro!</h2>
+      <p class="text-secondary lead mb-4">
+        Unlimited projects unlocked. You and your team can now create as many projects as you want.
+      </p>
+      <div class="d-flex justify-content-center gap-3 flex-wrap">
+        <a href="{% url 'projects' %}" class="btn btn-success btn-lg px-5">
+          <i class="bi bi-folder2-open me-2"></i>Go to Projects
+        </a>
+        <a href="{% url 'dashboard' %}" class="btn btn-outline-light btn-lg px-5">Dashboard</a>
       </div>
     </div>
   </div>
 </div>
-
 {% endblock %}

@@ -1,36 +1,50 @@
 {% extends "home.html" %}
+{% block title %}Add Task — {{ project.name }}{% endblock %}
 
 {% block content %}
-<div class="container py-5">
-    <div class="row justify-content-center">
-        <div class="col-md-6">
-            <div class="card bg-dark border-secondary shadow">
-                <div class="card-body p-4">
-                    <h2 class="h4 text-white mb-4">Assign New Task</h2>
-                    <form method="POST">
-                        {% csrf_token %}
-                        <div class="mb-3">
-                            <label class="form-label text-secondary">Task Title</label>
-                            <input type="text" name="title" class="form-control bg-dark text-white border-secondary" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label text-secondary">Task Description (Instructions)</label>
-                            <textarea name="description" class="form-control bg-dark text-white border-secondary" rows="3"></textarea>
-                        </div>
-                        <div class="mb-4">
-                            <label class="form-label text-secondary">Assign To</label>
-                            <select name="assignee" class="form-select bg-dark text-white border-secondary">
-                                <option value="">Unassigned</option>
-                                {% for m in members %}
-                                    <option value="{{ m.id }}">{{ m.user }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <button type="submit" class="btn btn-success w-100">Create Task</button>
-                    </form>
-                </div>
-            </div>
-        </div>
+
+<div class="row justify-content-center">
+  <div class="col-md-8 col-lg-6">
+
+    <div class="mb-4">
+      <a href="{% url 'project_detail' project.id %}" class="text-secondary text-decoration-none small">
+        <i class="bi bi-arrow-left me-1"></i>Back to {{ project.name }}
+      </a>
+      <h2 class="text-white fw-bold mt-2">Add Task</h2>
     </div>
+
+    <div class="card p-4">
+      <form method="POST">
+        {% csrf_token %}
+        <div class="mb-4">
+          <label class="form-label text-secondary small fw-bold text-uppercase">Task Title</label>
+          <input type="text" name="title" class="form-control form-control-lg"
+                 style="background:#0f1117; color:#e2e8f0; border-color:var(--border);"
+                 placeholder="e.g. Design homepage mockup" required autofocus>
+        </div>
+        <div class="mb-4">
+          <label class="form-label text-secondary small fw-bold text-uppercase">Instructions / Description</label>
+          <textarea name="description" rows="3" class="form-control"
+                    style="background:#0f1117; color:#e2e8f0; border-color:var(--border);"
+                    placeholder="Describe what needs to be done..."></textarea>
+        </div>
+        <div class="mb-4">
+          <label class="form-label text-secondary small fw-bold text-uppercase">Assign To</label>
+          <select name="assignee" class="form-select"
+                  style="background:#0f1117; color:#e2e8f0; border-color:var(--border);">
+            <option value="">Unassigned</option>
+            {% for m in members %}
+              <option value="{{ m.id }}">{{ m.user.email }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <button type="submit" class="btn btn-success btn-lg w-100 fw-bold">
+          <i class="bi bi-plus-circle me-2"></i>Create Task
+        </button>
+      </form>
+    </div>
+
+  </div>
 </div>
+
 {% endblock %}

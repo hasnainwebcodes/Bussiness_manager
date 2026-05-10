@@ -1,12 +1,14 @@
-from django.http import HttpResponseForbidden
 from django.urls import resolve
 from .models import TeamMember
+from django.shortcuts import render
+
 
 PROTECTED_URL_NAMES = {
     'project_detail', 'add_task', 'update_task_progress',
     'update_task_status', 'projects', 'project_list',
     'create_projects', 'view_team', 'invite', 'team_settings',
 }
+
 
 class WorkspaceIsolationMiddleware:
     def __init__(self, get_response):
@@ -21,9 +23,9 @@ class WorkspaceIsolationMiddleware:
                 ).select_related('company').first()
 
                 if member and member.company.is_banned:
-                    return HttpResponseForbidden(
-                        "This workspace has been suspended."
-                    )
+                    return render(request, 'banned.html', {
+                        'company': member.company
+                    })  # ← instead of HttpResponseForbidden
 
                 request.current_company = member.company if member else None
 

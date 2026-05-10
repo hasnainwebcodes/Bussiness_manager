@@ -1,126 +1,179 @@
 {% extends "home.html" %}
-
-{% block title %}Dashboard - {{ company.name|default:"BusinessManager" }}{% endblock %}
+{% block title %}Dashboard — {{ company.name }}{% endblock %}
 
 {% block content %}
 
-<div class="container py-5">
+{% if not company %}
+  <div class="text-center py-5">
+    <h2 class="text-white mb-3">Welcome to BusinessManager</h2>
+    <p class="text-secondary lead mb-4">Create your workspace to start managing your team and projects.</p>
+    <a href="{% url 'create_company' %}" class="btn btn-primary btn-lg px-5">Create Your Workspace</a>
+  </div>
+{% else %}
 
-  {% if not company %}
-    <div class="text-center py-5">
-      <h2 class="mb-4">Welcome to BusinessManager</h2>
-      <p class="lead text-secondary mb-4">Create your workspace to start managing your team and projects.</p>
-      <a href="{% url 'create_company' %}" class="btn btn-lg btn-primary px-5">
-        Create Your Workspace
-      </a>
-    </div>
-
-  {% else %}
-
-    <!-- Workspace Header -->
-    <div class="d-flex flex-wrap justify-content-between align-items-center mb-5 gap-3">
-      <div>
-        <h1 class="display-6 fw-bold mb-1">
-          {{ company.name }}
-        </h1>
-        <p class="text-secondary mb-0">
-          Current Plan: 
-          <strong class="text-uppercase">{{ company.plan }}</strong>
-          {% if company.plan == 'free' %}
-            <span class="badge bg-warning text-dark ms-2">Limited Access</span>
-          {% endif %}
-        </p>
-      </div>
-      <div class="d-flex gap-2">
-        {% if is_owner %}
-        <a href="{% url 'billing' %}" class="btn btn-outline-light">
-          💳 Billing
-        </a>
+  <!-- Header -->
+  <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+    <div>
+      <h1 class="fw-bold text-white mb-1">{{ company.name }}</h1>
+      <div class="d-flex align-items-center gap-2">
+        <span class="text-secondary small">Current plan:</span>
+        {% if company.plan == 'free' %}
+          <span class="plan-pill plan-free">Free</span>
+        {% elif company.plan == 'pro' %}
+          <span class="plan-pill plan-pro">Pro ✦</span>
+        {% else %}
+          <span class="plan-pill plan-business">Business</span>
         {% endif %}
-        <a href="{% url 'view_team' %}" class="btn btn-outline-light">
-          👥 Team
-        </a>
+        {% if company.plan == 'free' %}
+          <a href="{% url 'billing' %}" class="text-warning small text-decoration-none">
+            <i class="bi bi-lightning-fill"></i> Upgrade to Pro
+          </a>
+        {% endif %}
       </div>
     </div>
-
-    <div class="row g-4">
-
-      <!-- Projects Section -->
-      <div class="col-lg-7">
-        <div class="card shadow-sm">
-          <div class="card-header bg-dark border-secondary d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">Projects ({{ projects|length }})</h5>
-            <a href="{% url 'create_projects' %}" class="btn btn-sm btn-success">
-              + New Project
-            </a>
-          </div>
-          <div class="card-body">
-            {% for p in projects %}
-              <div class="card bg-secondary mb-3">
-                <div class="card-body py-3">
-                  <h6 class="mb-0">{{ p.name }}</h6>
-                </div>
-              </div>
-            {% empty %}
-              <p class="text-secondary text-center py-4">No projects created yet.</p>
-            {% endfor %}
-          </div>
-        </div>
-      </div>
-
-      <!-- Team Section -->
-      <div class="col-lg-5">
-        <div class="card shadow-sm">
-          <div class="card-header bg-dark border-secondary">
-            <h5 class="mb-0">Team Members ({{ team|length }})</h5>
-          </div>
-          <div class="card-body">
-            {% for m in team %}
-              <div class="d-flex justify-content-between align-items-center py-2 border-bottom border-secondary">
-                <div>
-                  <strong>{{ m.user.email }}</strong>
-                  <br>
-                  <small class="text-secondary">{{ m.get_role_display|default:m.role }}</small>
-                </div>
-                {% if m.role == 'OWNER' %}
-                  <span class="badge bg-danger">Owner</span>
-                {% elif m.role == 'ADMIN' %}
-                  <span class="badge bg-warning">Admin</span>
-                {% else %}
-                  <span class="badge bg-secondary">Member</span>
-                {% endif %}
-              </div>
-            {% empty %}
-              <p class="text-secondary text-center py-4">No team members yet.</p>
-            {% endfor %}
-          </div>
-          <div class="card-footer bg-dark border-secondary">
-            <a href="{% url 'view_team' %}" class="btn btn-outline-light w-100">
-              Manage Team &amp; Send Invites
-            </a>
-          </div>
-        </div>
-      </div>
-
-    </div>
-
-    <!-- Free Plan Warning -->
-    {% if company.plan == 'free' %}
-    <div class="alert alert-warning mt-5 d-flex align-items-center">
-      <div class="flex-grow-1">
-        <strong>Free Plan Limit Reached Soon:</strong> 
-        You can only create up to 3 projects.
-      </div>
-      {% if is_owner %}
-      <a href="{% url 'billing' %}" class="btn btn-warning btn-sm text-dark fw-bold">
-        Upgrade to Pro →
+    {% if is_owner %}
+      <a href="{% url 'billing' %}" class="btn btn-outline-light btn-sm">
+        <i class="bi bi-credit-card me-1"></i> Billing
       </a>
-    </div>
     {% endif %}
-    {% endif %}
+  </div>
 
+  <!-- Stats Row -->
+  <div class="row g-3 mb-4">
+    <div class="col-md-3">
+      <div class="card p-3 text-center">
+        <div class="fs-2 fw-bold text-primary">{{ projects|length }}</div>
+        <div class="text-secondary small">Projects</div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card p-3 text-center">
+        <div class="fs-2 fw-bold text-success">{{ team|length }}</div>
+        <div class="text-secondary small">Team Members</div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card p-3 text-center">
+        <div class="fs-2 fw-bold text-warning">
+          {% if company.plan == 'free' %}3{% else %}∞{% endif %}
+        </div>
+        <div class="text-secondary small">Project Limit</div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card p-3 text-center">
+        <div class="fs-2 fw-bold {% if company.plan == 'pro' %}text-info{% else %}text-secondary{% endif %}">
+          {% if company.plan == 'pro' %}Pro{% else %}Free{% endif %}
+        </div>
+        <div class="text-secondary small">Plan</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-4">
+
+    <!-- Projects -->
+    <div class="col-lg-7">
+      <div class="card shadow-sm">
+        <div class="card-header d-flex justify-content-between align-items-center py-3">
+          <span>Projects <span class="badge bg-secondary ms-1">{{ projects|length }}</span></span>
+          {% if is_admin %}
+          <a href="{% url 'create_projects' %}" class="btn btn-sm btn-success">
+            <i class="bi bi-plus-lg me-1"></i>New
+          </a>
+          {% endif %}
+        </div>
+        <div class="card-body p-0">
+          {% for p in projects %}
+            <div class="d-flex justify-content-between align-items-center px-4 py-3 border-bottom"
+                 style="border-color:var(--border) !important;">
+              <div>
+                <a href="{% url 'project_detail' p.id %}" class="text-white text-decoration-none fw-medium">
+                  {{ p.name }}
+                </a>
+                <div class="mt-1" style="width:120px;">
+                  <div class="progress" style="height:4px;">
+                    <div class="progress-bar bg-success" style="width:{{ p.progress_percentage }}%;"></div>
+                  </div>
+                </div>
+              </div>
+              <div class="d-flex align-items-center gap-2">
+                <span class="extra-small text-secondary">{{ p.progress_percentage }}%</span>
+                <span class="badge {% if p.status == 'completed' %}bg-success{% elif p.status == 'active' %}bg-info{% else %}bg-secondary{% endif %} text-dark">
+                  {{ p.get_status_display }}
+                </span>
+              </div>
+            </div>
+          {% empty %}
+            <div class="text-center text-secondary py-4">
+              No projects yet.
+              {% if is_admin %}
+                <a href="{% url 'create_projects' %}" class="d-block mt-2 text-success">Create your first project →</a>
+              {% endif %}
+            </div>
+          {% endfor %}
+        </div>
+        {% if projects %}
+        <div class="card-footer text-center" style="background:transparent; border-top:1px solid var(--border);">
+          <a href="{% url 'projects' %}" class="text-secondary small text-decoration-none">View all projects →</a>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Team -->
+    <div class="col-lg-5">
+      <div class="card shadow-sm">
+        <div class="card-header d-flex justify-content-between align-items-center py-3">
+          <span>Team <span class="badge bg-secondary ms-1">{{ team|length }}</span></span>
+          {% if is_admin %}
+          <a href="{% url 'view_team' %}" class="btn btn-sm btn-outline-light">Invite</a>
+          {% endif %}
+        </div>
+        <div class="card-body p-0">
+          {% for m in team %}
+            <div class="d-flex justify-content-between align-items-center px-4 py-3 border-bottom"
+                 style="border-color:var(--border) !important;">
+              <div class="d-flex align-items-center gap-2">
+                <div class="avatar" style="width:28px;height:28px;font-size:0.7rem;">
+                  {{ m.user.email|slice:":1"|upper }}
+                </div>
+                <span class="small text-white">{{ m.user.email|truncatechars:22 }}</span>
+              </div>
+              {% if m.role == 30 %}
+                <span class="badge bg-danger">Owner</span>
+              {% elif m.role == 20 %}
+                <span class="badge bg-warning text-dark">Admin</span>
+              {% else %}
+                <span class="badge bg-secondary">Member</span>
+              {% endif %}
+            </div>
+          {% empty %}
+            <div class="text-center text-secondary py-4">No team members yet.</div>
+          {% endfor %}
+        </div>
+        <div class="card-footer text-center" style="background:transparent; border-top:1px solid var(--border);">
+          <a href="{% url 'view_team' %}" class="text-secondary small text-decoration-none">Manage team →</a>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Free plan upgrade banner -->
+  {% if company.plan == 'free' and is_owner %}
+  <div class="mt-4 p-4 rounded-3 d-flex justify-content-between align-items-center"
+       style="background: linear-gradient(135deg,#1e2d4f,#1a1f2e); border:1px solid #1d4ed8;">
+    <div>
+      <h6 class="text-white fw-bold mb-1">
+        <i class="bi bi-lightning-fill text-warning me-2"></i>Upgrade to Pro — $5/month
+      </h6>
+      <p class="text-secondary small mb-0">Unlock unlimited projects, 50 members, and analytics charts.</p>
+    </div>
+    <a href="{% url 'billing' %}" class="btn btn-primary btn-sm px-4 ms-3 flex-shrink-0">Upgrade Now</a>
+  </div>
   {% endif %}
 
-</div>
+{% endif %}
 
 {% endblock %}

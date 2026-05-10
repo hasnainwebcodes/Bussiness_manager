@@ -1,56 +1,30 @@
 {% extends "home.html" %}
-
-{% block title %}Create Workspace - BusinessManager{% endblock %}
+{% block title %}Create Workspace — BusinessManager{% endblock %}
 
 {% block content %}
+<div class="row justify-content-center py-5">
+  <div class="col-md-6 col-lg-5">
 
-<div class="container py-5">
-  <div class="row justify-content-center">
-    <div class="col-md-6 col-lg-5">
-      <div class="card bg-dark border-secondary shadow-sm">
-        <div class="card-body p-5">
-
-          <div class="text-center mb-4">
-            <h2 class="fw-bold">Create Your Workspace</h2>
-            <p class="text-secondary lead">What is the name of your company or team?</p>
-          </div>
-
-          {% if messages %}
-            {% for m in messages %}
-              <div class="alert alert-{{ m.tags }} alert-dismissible fade show">
-                {{ m }}
-              </div>
-            {% endfor %}
-          {% endif %}
-
-          <form method="post">
-            {% csrf_token %}
-            
-            <div class="mb-4">
-              <label class="form-label">Company / Workspace Name</label>
-              <input type="text" 
-                     name="name" 
-                     class="form-control form-control-lg bg-dark text-white border-secondary"
-                     placeholder="Acme Corp" 
-                     required 
-                     autofocus>
-            </div>
-
-            <button type="submit" class="btn btn-primary btn-lg w-100 py-3">
-              Create Workspace
-            </button>
-          </form>
-
-          <div class="text-center mt-4">
-            <a href="{% url 'dashboard' %}" class="text-secondary text-decoration-none">
-              ← Back
-            </a>
-          </div>
-
-        </div>
-      </div>
+    <div class="text-center mb-4">
+      <h2 class="text-white fw-bold">Create Your Workspace</h2>
+      <p class="text-secondary">What is the name of your company or team?</p>
     </div>
+
+    <div class="card p-4">
+      <form method="post">
+        {% csrf_token %}
+        <div class="mb-4">
+          <label class="form-label text-secondary small fw-bold text-uppercase">Company / Workspace Name</label>
+          <input type="text" name="name" class="form-control form-control-lg"
+                 style="background:#0f1117; color:#e2e8f0; border-color:var(--border);"
+                 placeholder="Acme Corp" required autofocus>
+        </div>
+        <button type="submit" class="btn btn-primary btn-lg w-100 fw-bold">
+          <i class="bi bi-building me-2"></i>Create Workspace
+        </button>
+      </form>
+    </div>
+
   </div>
 </div>
-
 {% endblock %}
