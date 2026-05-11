@@ -1,5 +1,5 @@
 {% extends "home.html" %}
-{% block title %}New Project — {{ company.name }}{% endblock %}
+{% block title %}{% if editing %}Edit{% else %}New{% endif %} Project — {{ company.name }}{% endblock %}
 
 {% block content %}
 
@@ -7,13 +7,16 @@
   <div class="col-md-8 col-lg-6">
 
     <div class="mb-4">
-      <a href="{% url 'projects' %}" class="text-secondary text-decoration-none small">
-        <i class="bi bi-arrow-left me-1"></i>Back to Projects
+      <a href="{% if editing %}{% url 'project_detail' project.id %}{% else %}{% url 'projects' %}{% endif %}"
+         class="text-secondary text-decoration-none small">
+        <i class="bi bi-arrow-left me-1"></i>Back
       </a>
-      <h2 class="text-white fw-bold mt-2">Create New Project</h2>
+      <h2 class="text-white fw-bold mt-2">
+        {% if editing %}Edit Project{% else %}Create New Project{% endif %}
+      </h2>
     </div>
 
-    {% if company.plan == 'free' %}
+    {% if company.plan == 'free' and not editing %}
     <div class="alert mb-4" style="background:rgba(234,179,8,0.08); border:1px solid rgba(234,179,8,0.25); border-radius:8px;">
       <i class="bi bi-exclamation-triangle text-warning me-2"></i>
       <span class="text-warning"><strong>Free plan:</strong> You can create up to 3 projects.</span>
@@ -28,28 +31,51 @@
           <input type="text" name="name"
                  class="form-control form-control-lg"
                  style="background:#0f1117; color:#e2e8f0; border-color:var(--border);"
-                 placeholder="e.g. Website Redesign" required autofocus>
+                 placeholder="e.g. Website Redesign"
+                 value="{{ project.name|default:'' }}"
+                 required autofocus>
         </div>
         <div class="mb-4">
           <label class="form-label text-secondary small fw-bold text-uppercase">Description</label>
           <textarea name="description" rows="3" class="form-control"
                     style="background:#0f1117; color:#e2e8f0; border-color:var(--border);"
-                    placeholder="What is this project about?"></textarea>
+                    placeholder="What is this project about?">{{ project.description|default:'' }}</textarea>
         </div>
         <div class="mb-4">
-          <label class="form-label text-secondary small fw-bold text-uppercase">Initial Status</label>
+          <label class="form-label text-secondary small fw-bold text-uppercase">Status</label>
           <select name="status" class="form-select"
                   style="background:#0f1117; color:#e2e8f0; border-color:var(--border);">
-            <option value="planning" selected>Planning</option>
-            <option value="active">Active</option>
-            <option value="on_hold">On Hold</option>
+            <option value="planning" {% if project.status == 'planning' %}selected{% endif %}>Planning</option>
+            <option value="active" {% if project.status == 'active' %}selected{% endif %}>Active</option>
+            <option value="on_hold" {% if project.status == 'on_hold' %}selected{% endif %}>On Hold</option>
+            <option value="completed" {% if project.status == 'completed' %}selected{% endif %}>Completed</option>
           </select>
         </div>
         <button type="submit" class="btn btn-success btn-lg w-100 fw-bold">
-          <i class="bi bi-plus-circle me-2"></i>Create Project
+          <i class="bi bi-{% if editing %}check-circle{% else %}plus-circle{% endif %} me-2"></i>
+          {% if editing %}Save Changes{% else %}Create Project{% endif %}
         </button>
       </form>
     </div>
+
+    <!-- Danger Zone — only on edit -->
+    {% if editing %}
+    <div class="card mt-4 p-4" style="border-color:#dc3545 !important;">
+      <h6 class="text-danger fw-bold mb-1">
+        <i class="bi bi-exclamation-triangle me-2"></i>Danger Zone
+      </h6>
+      <p class="text-secondary small mb-3">
+        Deleting this project will permanently remove all its tasks. This cannot be undone.
+      </p>
+      <form method="POST" action="{% url 'project_delete' project.id %}"
+            onsubmit="return confirm('Delete project \'{{ project.name }}\'? All tasks will be lost.')">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger btn-sm px-4">
+          <i class="bi bi-trash me-2"></i>Delete Project
+        </button>
+      </form>
+    </div>
+    {% endif %}
 
   </div>
 </div>

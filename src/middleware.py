@@ -5,8 +5,9 @@ from django.shortcuts import render
 
 PROTECTED_URL_NAMES = {
     'project_detail', 'add_task', 'update_task_progress',
-    'update_task_status', 'projects', 'project_list',
-    'create_projects', 'view_team', 'invite', 'team_settings',
+    'update_task_status', 'task_edit', 'task_delete',
+    'projects', 'project_list', 'create_projects',
+    'view_team', 'invite', 'team_settings', 'dashboard',
 }
 
 

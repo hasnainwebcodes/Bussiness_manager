@@ -175,23 +175,29 @@ def create_company(request):
             messages.error(request, "Company name is required.")
             return render(request, "company/create.html")
 
-        company = Company.objects.create(name=name, owner=request.user)
+        # Delete any existing banned company for this user
+        existing = TeamMember.objects.filter(
+            user=request.user
+        ).select_related('company').first()
 
+        if existing and existing.company.is_banned:
+            existing.company.delete()  # cascades — deletes members, projects, tasks
+
+        company = Company.objects.create(name=name, owner=request.user)
         TeamMember.objects.create(
             user=request.user,
             company=company,
             role=MemberRole.OWNER,
         )
 
-        messages.success(request, f"Workspace '{company.name}' created successfully!")
+        messages.success(request, f"Workspace '{company.name}' created!")
         return redirect("dashboard")
 
     return render(request, "company/create.html")
 
-
 @login_required
 def dashboard(request):
-    member = TeamMember.objects.filter(user=request.user).select_related("company").first()
+    member = TeamMember.objects.filter(user=request.user,company__is_banned=False).select_related("company").first()
 
     if not member:
         return redirect("create_company")
@@ -360,16 +366,6 @@ def change_user_role(request, user_id):
 
 # ====================== PROJECTS ======================
 
-@login_required
-def projects(request):
-    member = get_object_or_404(TeamMember, user=request.user)
-    company = member.company
-
-    context = {
-        "company": company,
-        "projects": company.projects.all(),
-    }
-    return render(request, "projects/list.html", context)
 
 
 
@@ -393,6 +389,52 @@ def create_projects(request):
         return redirect('dashboard')
     
     return render(request, "projects/create.html")
+@login_required
+@require_role([MemberRole.ADMIN, MemberRole.OWNER])
+def project_edit(request, project_id):
+    member = get_object_or_404(TeamMember, user=request.user)
+    project = get_object_or_404(Project, id=project_id, company=member.company)
+
+    if request.method == 'POST':
+        name = request.POST.get('name')
+        description = request.POST.get('description')
+        status = request.POST.get('status')
+
+        if not name:
+            messages.error(request, "Project name is required.")
+            return render(request, 'projects/create.html', {
+                'project': project,
+                'company': member.company,
+                'editing': True,
+            })
+
+        project.name = name
+        project.description = description
+        project.status = status
+        project.save()
+
+        messages.success(request, f"Project '{project.name}' updated.")
+        return redirect('project_detail', project_id=project.id)
+
+    return render(request, 'projects/create.html', {
+        'project': project,
+        'company': member.company,
+        'editing': True,
+    })
+
+
+@login_required
+@require_http_methods(["POST"])
+@require_role([MemberRole.OWNER])
+def project_delete(request, project_id):
+    member = get_object_or_404(TeamMember, user=request.user)
+    project = get_object_or_404(Project, id=project_id, company=member.company)
+
+    project_name = project.name
+    project.delete()
+    messages.success(request, f"Project '{project_name}' deleted.")
+    return redirect('projects')
+
     # ====================== BILLING ======================
 
 
@@ -637,26 +679,34 @@ def team_settings(request):
     })
 
 @login_required
-def project_list(request):
+def projects(request):
     member = get_object_or_404(TeamMember, user=request.user)
     company = member.company
     projects = company.projects.all().prefetch_related('tasks')
-    
-    # PRO-ONLY DATA: Analytics
+
+    # Calculate real progress for each project the same way detail.html does
+    projects_with_progress = []
+    for p in projects:
+        total = p.tasks.count()
+        if total == 0:
+            progress = 0
+        else:
+            total_progress = p.tasks.aggregate(total=Sum('progress'))['total'] or 0
+            progress = round(total_progress / total)
+        projects_with_progress.append({
+            'project': p,
+            'progress': progress,
+        })
+
     analytics_data = None
     if company.plan == 'pro':
-        # Count tasks by status for the charts
         status_counts = Task.objects.filter(project__company=company).values('status').annotate(count=Count('status'))
-        analytics_data = {
-            'not_started': 0,
-            'in_progress': 0,
-            'finished': 0
-        }
+        analytics_data = {'not_started': 0, 'in_progress': 0, 'finished': 0}
         for item in status_counts:
             analytics_data[item['status']] = item['count']
 
     return render(request, "projects/list.html", {
-        "projects": projects,
+        "projects_with_progress": projects_with_progress,
         "company": company,
         "role": member.role,
         "analytics": analytics_data
@@ -784,3 +834,77 @@ def update_task_progress(request, task_id):
     task.save()
 
     return JsonResponse({'progress': task.progress, 'status': task.status})
+@login_required
+def task_edit(request, task_id):
+    member = get_object_or_404(TeamMember, user=request.user)
+    task = get_object_or_404(Task, id=task_id, project__company=member.company)
+
+    # Only admin/owner can edit
+    if member.role < MemberRole.ADMIN:
+        messages.error(request, "You don't have permission to edit tasks.")
+        return redirect('project_detail', project_id=task.project.id)
+
+    if request.method == 'POST':
+        title = request.POST.get('title')
+        description = request.POST.get('description')
+        assignee_id = request.POST.get('assignee')
+
+        if not title:
+            messages.error(request, "Task title is required.")
+            return redirect('task_edit', task_id=task.id)
+
+        task.title = title
+        task.description = description
+
+        if assignee_id:
+            task.assigned_to = get_object_or_404(
+                TeamMember, id=assignee_id, company=member.company
+            )
+        else:
+            task.assigned_to = None
+
+        task.save()
+        messages.success(request, f"Task '{task.title}' updated.")
+        return redirect('project_detail', project_id=task.project.id)
+
+    members = TeamMember.objects.filter(company=member.company).select_related('user')
+    return render(request, 'tasks/edit_task.html', {
+        'task': task,
+        'members': members,
+        'project': task.project,
+    })
+
+
+@login_required
+@require_http_methods(["POST"])
+def task_delete(request, task_id):
+    member = get_object_or_404(TeamMember, user=request.user)
+    task = get_object_or_404(Task, id=task_id, project__company=member.company)
+
+    # Only admin/owner can delete
+    if member.role < MemberRole.ADMIN:
+        messages.error(request, "You don't have permission to delete tasks.")
+        return redirect('project_detail', project_id=task.project.id)
+
+    project_id = task.project.id
+    task_title = task.title
+    task.delete()
+    messages.success(request, f"Task '{task_title}' deleted.")
+    return redirect('project_detail', project_id=project_id)
+    
+def contact_support(request):
+    if request.method == 'POST':
+        user_email = request.POST.get('email')
+        subject = request.POST.get('subject')
+        message = request.POST.get('message')
+
+        send_mail(
+            subject=f"Support [{subject}] from {user_email}",
+            message=f"From: {user_email}\n\n{message}",
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[settings.DEFAULT_FROM_EMAIL],
+        )
+        messages.success(request, "Message sent! We'll get back to you soon.")
+        return redirect('home')
+
+    return render(request, 'contact.html')

@@ -3,15 +3,18 @@
 {% block content %}
 <div class="row justify-content-center py-5">
   <div class="col-md-6 text-center">
-    <div class="card p-5">
+    <div class="card p-5" style="border-color:#dc3545 !important;">
       <div class="fs-1 mb-3">🚫</div>
       <h2 class="text-danger fw-bold mb-2">Workspace Suspended</h2>
-      <p class="text-secondary mb-4">
-        <strong class="text-white">{{ company.name }}</strong> has been suspended 
-        for violating our terms of service. Contact support if you believe this 
-        is a mistake.
+      <p class="text-secondary mb-2">
+        <strong class="text-white">{{ company.name }}</strong> has been suspended
+        for violating our terms of service.
       </p>
-      <div class="d-flex justify-content-center gap-3">
+      <p class="text-secondary mb-4">
+        You can create a new workspace. Your suspended workspace and all its
+        data will be <strong class="text-danger">permanently deleted</strong>.
+      </p>
+      <div class="d-flex justify-content-center gap-3 flex-wrap">
         <a href="{% url 'create_company' %}" class="btn btn-primary px-4">
           <i class="bi bi-building me-2"></i>Create New Workspace
         </a>
@@ -19,6 +22,10 @@
           Logout
         </a>
       </div>
+      <p class="text-muted small mt-4 mb-0">
+        Think this is a mistake?
+        <a href="{% url 'contact_support' %}" class="text-secondary">Contact support</a>
+      </p>
     </div>
   </div>
 </div>

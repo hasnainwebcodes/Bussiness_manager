@@ -31,6 +31,11 @@ urlpatterns = [
     path('projects/<int:project_id>/', views.project_detail, name='project_detail'),
     path('tasks/<int:task_id>/update/<str:new_status>/', views.update_task_status, name='update_task_status'),
     path('tasks/<int:task_id>/progress/', views.update_task_progress, name='update_task_progress'),
+    path('tasks/<int:task_id>/edit/', views.task_edit, name='task_edit'),
+    path('tasks/<int:task_id>/delete/', views.task_delete, name='task_delete'),
+    path('contact/', views.contact_support, name='contact_support'),
+    path('projects/<int:project_id>/edit/', views.project_edit, name='project_edit'),
+path('projects/<int:project_id>/delete/', views.project_delete, name='project_delete'),
     path('password-reset/', 
          auth_views.PasswordResetView.as_view(
              template_name='auth/password_reset.html',

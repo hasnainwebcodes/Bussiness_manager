@@ -1,0 +1,55 @@
+{% extends "home.html" %}
+{% block title %}Contact Support — BusinessManager{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center py-5">
+  <div class="col-md-8 col-lg-6">
+
+    <div class="text-center mb-4">
+      <h2 class="text-white fw-bold">Contact Support</h2>
+      <p class="text-secondary">We'll get back to you as soon as possible.</p>
+    </div>
+
+    <div class="card p-4">
+      <form method="POST">
+        {% csrf_token %}
+        <div class="mb-4">
+          <label class="form-label text-secondary small fw-bold text-uppercase">Your Email</label>
+          <input type="email" name="email"
+                 class="form-control form-control-lg"
+                 style="background:#0f1117; color:#e2e8f0; border-color:var(--border);"
+                 placeholder="you@company.com"
+                 value="{% if request.user.is_authenticated %}{{ request.user.email }}{% endif %}"
+                 required autofocus>
+        </div>
+        <div class="mb-4">
+          <label class="form-label text-secondary small fw-bold text-uppercase">Subject</label>
+          <select name="subject" class="form-select"
+                  style="background:#0f1117; color:#e2e8f0; border-color:var(--border);">
+            <option value="suspended">My workspace was suspended</option>
+            <option value="billing">Billing issue</option>
+            <option value="bug">Bug report</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div class="mb-4">
+          <label class="form-label text-secondary small fw-bold text-uppercase">Message</label>
+          <textarea name="message" rows="5" class="form-control"
+                    style="background:#0f1117; color:#e2e8f0; border-color:var(--border);"
+                    placeholder="Describe your issue in detail..." required></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary btn-lg w-100 fw-bold">
+          <i class="bi bi-send me-2"></i>Send Message
+        </button>
+      </form>
+    </div>
+
+    <div class="text-center mt-3">
+      <a href="{% url 'home' %}" class="text-secondary small text-decoration-none">
+        <i class="bi bi-arrow-left me-1"></i>Back to Home
+      </a>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
