@@ -483,7 +483,7 @@ def checkout_session(request):
     )
     
     # 2. Your Price ID from the Stripe Dashboard
-    PRO_PRICE_ID = "price_1TPeKFDRIV9EVyvDotMBZYqR"  # <--- Paste your price_... ID here
+    PRO_PRICE_ID = os.getenv('STRIPE_PRO_PRICE_ID')
 
     try:
         # 3. Create the Stripe Checkout Session

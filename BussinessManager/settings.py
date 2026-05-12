@@ -9,7 +9,7 @@ https://docs.djangoproject.com/en/5.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
-
+import os
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -21,7 +21,7 @@ AUTH_USER_MODEL = "src.CustomUser"
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-xp_^m(20hgljkq^+o6ku98pds0a7k^+0p7fnd+u_)9&#8gw&qy'
+SECRET_KEY = os.getenv('SECRET_KEY')
 LOGIN_URL = "/user_login/"
 LOGOUT_REDIRECT_URL = "/"
 
@@ -84,7 +84,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'manager',
         'USER': 'postgres',
-        'PASSWORD': 'hasnain3010?',
+        'PASSWORD': os.getenv('DB_PASSWORD'),
         'HOST': 'localhost',
         'PORT': '5432',
     }
@@ -137,9 +137,10 @@ EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'vighiorazahasnain@gmail.com'        
-EMAIL_HOST_PASSWORD = 'gzec byjj rkay vbua'  
-DEFAULT_FROM_EMAIL = 'BusinessManager <vighiorazahasnain@gmail.com>'
-STRIPE_PUBLISHABLE_KEY = "pk_test_51SBVr9DRIV9EVyvDsJq69RKUGnOqwYd5bydXmwCkwwl1EaEEUMXX4TgfYiLX4OYZqmHsjPEpssI2yKYhQL75H7hP00QwBZuRF3" 
-STRIPE_SECRET_KEY = "sk_test_51SBVr9DRIV9EVyvD2849lleX4nCEVrk8TkgnJ3ZXoxwIHFbrdYKHjR5D2iOqT19Z5Bogn9FoZ67f56jntlVGXnxn00JrMDXKEZ"      
-STRIPE_WEBHOOK_SECRET = "whsec_24a3c2b4e5512c464c2a5306ab0c76e1ab73dbc0ffca81e3cdfe80e1718263ae"
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
+DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL')
+
+STRIPE_PUBLISHABLE_KEY = os.getenv('STRIPE_PUBLISHABLE_KEY')
+STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY')
+STRIPE_WEBHOOK_SECRET = os.getenv('STRIPE_WEBHOOK_SECRET')
