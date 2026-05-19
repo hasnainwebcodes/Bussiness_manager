@@ -99,7 +99,7 @@ def register(request):
                 message=f"Please click the link to verify your email:\n\n{verify_link}\n\nThis link will expire soon.",
                 from_email=settings.DEFAULT_FROM_EMAIL,
                 recipient_list=[email],
-                fail_silently=True,
+                fail_silently=False,
             )
 
             if joined_company:
@@ -110,6 +110,7 @@ def register(request):
             return redirect("user_login")
 
         except Exception as e:
+            print(str(e))
             logger.error(f"Registration failed: {str(e)}")
             messages.error(request, "Account creation failed. Please try again.")
             return render(request, "register.html")
