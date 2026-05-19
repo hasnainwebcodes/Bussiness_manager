@@ -1,165 +1,178 @@
 {% extends "home.html" %}
-
-{% block title %}Billing - {{ company.name }}{% endblock %}
+{% block title %}Billing — {{ company.name }}{% endblock %}
 
 {% block content %}
-<div class="container py-5">
 
-    <div class="d-flex justify-content-between align-items-center mb-5">
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h1 class="fw-bold text-white mb-1">Billing & Subscription</h1>
+    <p class="text-secondary mb-0">Workspace: <strong>{{ company.name }}</strong></p>
+  </div>
+</div>
+
+<div class="row g-4 mb-4">
+
+  <!-- Current Plan -->
+  <div class="col-lg-7">
+    <div class="card p-4 h-100">
+      <div class="d-flex justify-content-between align-items-center">
         <div>
-            <h1 class="display-6 fw-bold">Billing & Subscription</h1>
-            <p class="text-secondary mb-0">Workspace: <strong>{{ company.name }}</strong></p>
+          <p class="text-secondary small text-uppercase fw-bold mb-1">Current Plan</p>
+          <h2 class="text-white fw-bold text-uppercase mb-1">
+            {{ company.plan }}
+            {% if company.plan == 'pro' %}
+              <span class="pro-badge ms-2">Pro ✦</span>
+            {% endif %}
+          </h2>
+          {% if company.plan == 'free' %}
+            <p class="text-warning small mb-0"><i class="bi bi-exclamation-triangle me-1"></i>Limited to 3 projects</p>
+          {% elif company.plan == 'pro' %}
+            <p class="text-success small mb-0"><i class="bi bi-check-circle me-1"></i>Unlimited projects · Priority Support</p>
+          {% else %}
+            <p class="text-info small mb-0"><i class="bi bi-check-circle me-1"></i>Enterprise features · Dedicated support</p>
+          {% endif %}
         </div>
-        <a href="{% url 'dashboard' %}" class="btn btn-outline-light">← Back to Dashboard</a>
+        <div class="text-end">
+          <h3 class="text-white fw-bold mb-0">
+            {% if company.plan == 'free' %}$0
+            {% elif company.plan == 'pro' %}$5
+            {% else %}Custom{% endif %}
+          </h3>
+          <small class="text-secondary">per month</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stripe Details (pro only) -->
+  {% if subscription and company.plan != 'free' %}
+  <div class="col-lg-5">
+    <div class="card p-4 h-100">
+      <p class="text-secondary small text-uppercase fw-bold mb-3">Stripe Details</p>
+      <p class="small mb-1 text-secondary"><strong class="text-white">Customer:</strong> {{ subscription.stripe_customer_id|truncatechars:22 }}</p>
+      <p class="small mb-1 text-secondary"><strong class="text-white">Subscription:</strong> {{ subscription.stripe_subscription_id|truncatechars:22 }}</p>
+      <p class="small mb-1 text-secondary"><strong class="text-white">Next Billing:</strong> {{ subscription.current_period_end|date:"M d, Y" }}</p>
+      <p class="small mb-0"><strong class="text-white">Status:</strong> <span class="badge bg-success ms-1">Active</span></p>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+
+<!-- Action Panel -->
+<div class="card p-5">
+  {% if company.plan == 'free' %}
+
+    <div class="text-center">
+      <span class="pro-badge mb-3 d-inline-block">Pro Plan</span>
+      <h3 class="text-white fw-bold mb-2">Unlock unlimited projects</h3>
+      <p class="text-secondary mb-4">Upgrade to <strong>Pro</strong> for $5/month to remove all restrictions.</p>
+      <button id="checkout-button" class="btn btn-primary btn-lg px-5 py-3 fw-bold">
+        <i class="bi bi-lightning-fill me-2"></i>Upgrade to Pro — $5/month
+      </button>
+      <p class="text-secondary small mt-3 mb-0">Secured by Stripe · Cancel anytime</p>
     </div>
 
-    {% if messages %}
-        {% for m in messages %}
-            <div class="alert alert-{{ m.tags }} alert-dismissible fade show bg-dark text-white border-secondary">
-                {{ m }}
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert"></button>
-            </div>
-        {% endfor %}
-    {% endif %}
+    <hr style="border-color:var(--border); margin: 2.5rem 0;">
 
-    <div class="row g-4">
-        <div class="col-lg-7">
-            <div class="card bg-dark border-secondary shadow-sm h-100">
-                <div class="card-header bg-dark border-secondary">
-                    <h5 class="mb-0 text-white">Current Plan</h5>
-                </div>
-                <div class="card-body d-flex flex-column justify-content-center">
-                    <div class="d-flex align-items-center justify-content-between">
-                        <div>
-                            <h2 class="text-uppercase fw-bold mb-1 text-white">{{ company.plan }}</h2>
-                            {% if company.plan == 'free' %}
-                                <p class="text-warning mb-0">Limited to 3 projects</p>
-                            {% elif company.plan == 'pro' %}
-                                <p class="text-success mb-0">Unlimited projects • Priority Support</p>
-                            {% else %}
-                                <p class="text-info mb-0">Enterprise features • Dedicated support</p>
-                            {% endif %}
-                        </div>
-                        <div class="text-end">
-                            <h4 class="mb-1 text-white">
-                                {% if company.plan == 'free' %}$0{% elif company.plan == 'pro' %}$29{% else %}Custom{% endif %}
-                            </h4>
-                            <small class="text-secondary">per month</small>
-                        </div>
-                    </div>
-                </div>
+    <div class="text-center">
+      <h5 class="text-white mb-1">Need an Enterprise solution?</h5>
+      <p class="text-secondary small mb-3">Custom roles, SSO, and dedicated infrastructure for large teams.</p>
+      <button class="btn btn-outline-info btn-sm" data-bs-toggle="collapse" data-bs-target="#salesForm">
+        Contact Sales
+      </button>
+      <div class="collapse mt-4 text-start mx-auto" id="salesForm" style="max-width:480px;">
+        <div class="card p-4">
+          <form method="POST">
+            {% csrf_token %}
+            <div class="mb-3">
+              <label class="form-label text-secondary small fw-bold">Team Size</label>
+              <select name="size" class="form-select" style="background:#0f1117;color:#e2e8f0;border-color:var(--border);">
+                <option value="10-50">10–50 employees</option>
+                <option value="50-200">50–200 employees</option>
+                <option value="200+">200+ employees</option>
+              </select>
             </div>
-        </div>
-
-        {% if subscription and company.plan != 'free' %}
-        <div class="col-lg-5">
-            <div class="card bg-dark border-secondary shadow-sm h-100">
-                <div class="card-header bg-dark border-secondary">
-                    <h5 class="mb-0 text-white">Stripe Details</h5>
-                </div>
-                <div class="card-body small text-secondary">
-                    <p class="mb-1"><strong>Customer:</strong> {{ subscription.stripe_customer_id|truncatechars:20 }}</p>
-                    <p class="mb-1"><strong>Subscription:</strong> {{ subscription.stripe_subscription_id|truncatechars:20 }}</p>
-                    <p class="mb-1"><strong>Next Billing:</strong> {{ subscription.current_period_end|date:"M d, Y" }}</p>
-                    <p class="mb-0"><strong>Status:</strong> <span class="badge bg-success">Active</span></p>
-                </div>
+            <div class="mb-3">
+              <label class="form-label text-secondary small fw-bold">Requirements</label>
+              <textarea name="message" rows="3" class="form-control"
+                style="background:#0f1117;color:#e2e8f0;border-color:var(--border);"
+                placeholder="Tell us about your organization..."></textarea>
             </div>
+            <button type="submit" name="contact_sales" class="btn btn-info w-100 fw-bold">Send Inquiry</button>
+          </form>
         </div>
-        {% endif %}
+      </div>
     </div>
 
-    <div class="row mt-5">
-        <div class="col-12">
-            <div class="card bg-dark border-secondary shadow-sm">
-                <div class="card-body p-5">
+  {% elif company.plan == 'pro' %}
 
-                    {% if company.plan == "free" %}
-                        <div class="text-center">
-                            <h3 class="mb-4 text-white">Ready to unlock unlimited projects?</h3>
-                            <p class="lead text-secondary mb-4">Upgrade to <strong>Pro</strong> to remove all restrictions and invite more team members.</p>
-                            <button id="checkout-button" class="btn btn-primary btn-lg px-5 py-3 fw-bold">
-                                Upgrade to Pro — $5/month
-                            </button>
-                        </div>
-
-                        <div class="mt-5 pt-5 border-top border-secondary text-center">
-                            <h4 class="text-white">Need an Enterprise solution?</h4>
-                            <p class="text-secondary">Custom roles, SSO, and dedicated infrastructure for large teams.</p>
-                            <button class="btn btn-outline-info" data-bs-toggle="collapse" data-bs-target="#salesForm">Contact Sales</button>
-                            
-                            <div class="collapse mt-4 text-start mx-auto" id="salesForm" style="max-width: 500px;">
-                                <div class="card card-body bg-secondary border-0 text-white shadow">
-                                    <form method="POST">
-                                        {% csrf_token %}
-                                        <div class="mb-3">
-                                            <label class="form-label">Team Size</label>
-                                            <select name="size" class="form-select bg-dark text-white border-secondary">
-                                                <option value="10-50">10-50 employees</option>
-                                                <option value="50-200">50-200 employees</option>
-                                                <option value="200+">200+ employees</option>
-                                            </select>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label class="form-label">Requirements</label>
-                                            <textarea name="message" class="form-control bg-dark text-white border-secondary" rows="3" placeholder="Tell us about your organization..."></textarea>
-                                        </div>
-                                        <button type="submit" name="contact_sales" class="btn btn-info w-100 fw-bold">Send Inquiry</button>
-                                    </form>
-                                </div>
-                            </div>
-                        </div>
-
-                    {% elif company.plan == "pro" %}
-                        <div class="text-center">
-                            <h3 class="mb-4 text-success">Pro Plan is Active ✅</h3>
-                            <p class="lead text-secondary mb-4">Your organization has full access to all features.</p>
-                            <form action="{% url 'billing_cancel' %}" method="POST" onsubmit="return confirm('Note: Your access will continue until the end of the current billing period.');">
-                                {% csrf_token %}
-                                <button type="submit" class="btn btn-outline-warning">Cancel Subscription</button>
-                            </form>
-                        </div>
-
-                    {% else %}
-                        <div class="text-center">
-                            <h3 class="mb-4 text-info">Business Mode Enabled</h3>
-                            <p class="text-secondary">You are currently on a custom enterprise plan.</p>
-                        </div>
-                    {% endif %}
-
-                </div>
-            </div>
-        </div>
+    <div class="text-center">
+      <div class="fs-1 mb-3">✅</div>
+      <h3 class="text-success fw-bold mb-2">Pro Plan Active</h3>
+      <p class="text-secondary mb-4">Your organization has full access to all features.</p>
+      <div class="d-flex justify-content-center gap-3 flex-wrap">
+        <form action="{% url 'billing_portal' %}" method="POST">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-outline-light px-4">
+            <i class="bi bi-credit-card me-2"></i>Manage Card / Cancel
+          </button>
+        </form>
+      </div>
+      <p class="text-secondary small mt-3">You'll be redirected to the Stripe billing portal.</p>
     </div>
+
+  {% else %}
+
+    <div class="text-center">
+      <h3 class="text-info fw-bold mb-2">Business Plan Active</h3>
+      <p class="text-secondary">You are on a custom enterprise plan. Contact support for changes.</p>
+    </div>
+
+  {% endif %}
 </div>
 
 <script src="https://js.stripe.com/v3/"></script>
 <script>
-    const checkoutBtn = document.getElementById('checkout-button');
-    if (checkoutBtn) {
-        checkoutBtn.addEventListener('click', function() {
-            checkoutBtn.disabled = true;
-            checkoutBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Processing...';
+  const btn = document.getElementById('checkout-button');
+  if (btn) {
+    btn.addEventListener('click', function () {
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Processing...';
 
-            fetch("{% url 'checkout_session' %}", {
-                method: "POST",
-                headers: { "X-CSRFToken": "{{ csrf_token }}" }
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.checkout_url) {
-                    window.location.href = data.checkout_url;
-                } else {
-                    alert("Error: " + data.message);
-                    checkoutBtn.disabled = false;
-                    checkoutBtn.innerText = "Upgrade to Pro — $29/month";
-                }
-            })
-            .catch(err => {
-                console.error('Fetch error:', err);
-                btn.disabled = false;
-                btn.innerHTML = '<i class="bi bi-lightning-fill me-2"></i>Upgrade to Pro — $5/month';
-            });
-        });
-    }
+      fetch("{% url 'checkout_session' %}", {
+        method: 'POST',
+        headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+      })
+      .then(r => {
+        if (!r.ok) {
+          return r.text().then(text => {
+            console.error('Server error response:', text);
+            alert('Server error occurred. Check browser console for details.');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-lightning-fill me-2"></i>Upgrade to Pro — $5/month';
+            throw new Error('Server error');
+          });
+        }
+        return r.json();
+      })
+      .then(data => {
+        if (!data) return;
+        if (data.checkout_url) {
+          window.location.href = data.checkout_url;
+        } else {
+          alert('Error: ' + (data.message || 'Please try again.'));
+          btn.disabled = false;
+          btn.innerHTML = '<i class="bi bi-lightning-fill me-2"></i>Upgrade to Pro — $5/month';
+        }
+      })
+      .catch(err => {
+        console.error('Fetch error:', err);
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-lightning-fill me-2"></i>Upgrade to Pro — $5/month';
+      });
+    });
+  }
 </script>
+
 {% endblock %}
