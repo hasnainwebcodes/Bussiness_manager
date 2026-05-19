@@ -155,8 +155,9 @@
                 }
             })
             .catch(err => {
-                console.error(err);
-                checkoutBtn.disabled = false;
+                console.error('Fetch error:', err);
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-lightning-fill me-2"></i>Upgrade to Pro — $5/month';
             });
         });
     }
