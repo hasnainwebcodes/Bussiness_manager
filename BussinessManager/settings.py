@@ -8,7 +8,7 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 LOGIN_URL = "/user_login/"
 LOGOUT_REDIRECT_URL = "/"
 
-DEBUG = False
+DEBUG = True
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost').split(',')
 
 INSTALLED_APPS = [
